@@ -1,5 +1,7 @@
+use std::f32::consts::PI;
+
 use image::{Pixel, Rgb, RgbImage};
-use nalgebra::{Normed, Vector3};
+use nalgebra::Vector3;
 use pbrt_rs::{
     camera::Camera,
     hit::{sphere, Hittable},
@@ -43,6 +45,11 @@ fn main() {
         radius: 0.5,
         material: material_right,
     }));
-    let camera = Camera::new(16.0 / 9.0, 400);
+    let mut camera = Camera::new(16.0 / 9.0, 400);
+    camera.look_from = Vector3::new(-2.0, 2.0, 1.0);
+    camera.look_at = Vector3::new(0.0, 0.0, -1.0);
+    camera.vup = Vector3::new(0.0, 1.0, 0.0);
+    // camera.vfov = 20.0;
+    camera.reinit();
     camera.render(&scene);
 }
