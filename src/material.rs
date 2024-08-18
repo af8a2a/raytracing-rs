@@ -54,7 +54,7 @@ impl Metal {
     }
     pub fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<(Ray, Vector3<f32>)> {
         let reflected =
-            random_in_unit_sphere() * self.fuzz + reflect(&ray.direction, &hit_record.normal);
+            random_in_unit_sphere() * self.fuzz + reflect(&ray.direction, &hit_record.normal).normalize();
         let scattered = Ray::new(hit_record.p, reflected);
         let attenuation = self.albedo.clone();
         if scattered.direction.dot(&hit_record.normal) > 0.0 {
