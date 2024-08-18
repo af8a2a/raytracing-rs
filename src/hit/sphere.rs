@@ -1,5 +1,7 @@
 use nalgebra::Vector3;
 
+use crate::util::Interval;
+
 use super::HitRecord;
 
 pub struct Sphere {
@@ -8,7 +10,7 @@ pub struct Sphere {
 }
 
 impl Sphere {
-    pub fn hit(&self, ray: &crate::ray::Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
+    pub fn hit(&self, ray: &crate::ray::Ray, interval: &Interval) -> Option<HitRecord> {
         let oc = self.center - ray.origin;
         let a = ray.direction.norm_squared();
         let h = ray.direction.dot(&oc);
@@ -20,9 +22,9 @@ impl Sphere {
         }
         let sqrt_discriminant = discriminant.sqrt();
         let mut root = (h - sqrt_discriminant) / a;
-        if root <= t_min || t_max <= root {
+        if !interval.surrounds(root) {
             root = (h + sqrt_discriminant) / a;
-            if root <= t_min || t_max <= root {
+            if !interval.surrounds(root) {
                 return None;
             }
         }

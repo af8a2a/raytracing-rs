@@ -1,8 +1,8 @@
 pub mod sphere;
 use nalgebra::Vector3;
 
-use crate::ray::Ray;
-#[derive(Debug,Clone,Default)]
+use crate::{ray::Ray, util::Interval};
+#[derive(Debug, Clone, Default)]
 pub struct HitRecord {
     pub t: f32,
     pub p: Vector3<f32>,
@@ -24,9 +24,9 @@ pub enum Hittable {
 }
 
 impl Hittable {
-    pub fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
+    pub fn hit(&self, ray: &Ray, interval: &Interval) -> Option<HitRecord> {
         match self {
-            Hittable::Sphere(sphere) => sphere.hit(ray, t_min, t_max),
+            Hittable::Sphere(sphere) => sphere.hit(ray, interval),
         }
     }
 }

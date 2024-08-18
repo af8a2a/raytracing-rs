@@ -4,10 +4,11 @@ use pbrt_rs::{
     hit::{sphere, Hittable},
     ray::Ray,
     scene::Scene,
+    util::Interval,
 };
 
 fn ray_color(ray: &Ray, scene: &Scene) -> Vector3<f32> {
-    let hit = scene.hit(ray, 0.0, f32::MAX);
+    let hit = scene.hit(ray, &Interval::new(0.0, f32::MAX));
     match hit {
         Some(record) => 0.5 * (record.normal + Vector3::new(1.0, 1.0, 1.0)),
         None => {
@@ -59,38 +60,37 @@ fn main() {
         radius: 100.0,
     }));
 
-    let write_png=||{
+    let write_png = || {
         let mut image = RgbImage::new(width as u32, height as u32);
         for j in 0..height as u32 {
             for i in 0..width as u32 {
                 let pixel_center =
                     pixel100_loc + (i as f32 * pixel_delta_u) + (j as f32 * pixel_delta_v);
-    
+
                 let ray_dir = pixel_center - camera_center;
                 let ray = Ray::new(camera_center, ray_dir.normalize());
                 let color = ray_color(&ray, &scene);
                 image.put_pixel(i, j, color_to_rgb(color));
             }
         }
-        image.save("image.png").expect("Failed to save image");    
+        image.save("image.png").expect("Failed to save image");
     };
-    let write_ppm=||{
+    let write_ppm = || {
         println!("P3\n{} {}\n255", width, height);
         for j in 0..height as u32 {
             for i in 0..width as u32 {
                 let pixel_center =
                     pixel100_loc + (i as f32 * pixel_delta_u) + (j as f32 * pixel_delta_v);
-    
+
                 let ray_dir = pixel_center - camera_center;
                 let ray = Ray::new(camera_center, ray_dir.normalize());
                 let color = ray_color(&ray, &scene);
-                let r=(color.x*255.99) as u8;
-                let g=(color.y*255.99) as u8;
-                let b=(color.z*255.99) as u8;
-                println!("{} {} {}",r,g,b);
+                let r = (color.x * 255.99) as u8;
+                let g = (color.y * 255.99) as u8;
+                let b = (color.z * 255.99) as u8;
+                println!("{} {} {}", r, g, b);
             }
         }
-
     };
     // write_ppm();
     write_png();
