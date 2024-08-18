@@ -6,7 +6,7 @@ use nalgebra::{clamp, Vector3};
 use crate::{
     ray::Ray,
     scene::Scene,
-    util::{random_on_hemisphere, sample_square, Interval},
+    util::{random_in_unit_sphere, random_on_hemisphere, sample_square, Interval},
 };
 
 fn color_to_rgb(color: Vector3<f32>) -> Rgb<u8> {
@@ -99,7 +99,7 @@ impl Camera {
         let hit = scene.hit(ray, &Interval::new(0.00000001, f32::MAX));
         match hit {
             Some(record) => {
-                let dir = random_on_hemisphere(&record.normal);
+                let dir = record.normal + random_in_unit_sphere();
                 return 0.5 * Self::ray_color(&Ray::new(record.p, dir), scene, depth - 1);
             }
             None => {
