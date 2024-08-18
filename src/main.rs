@@ -16,7 +16,7 @@ fn main() {
     let mut scene = Scene::default();
 
     scene.objects.push(Hittable::Sphere(sphere::Sphere {
-        center: Vector3::new(0.0, -1000.0, 0.0),
+        center: Vector3::new(0.0, -100.0, 0.0),
         radius: 100.0,
         material: material_ground,
     }));
@@ -82,7 +82,7 @@ fn main() {
     camera.defocus_angle = 0.6;
     camera.focus_dist = 10.0;
     camera.vfov = 20.0;
-    camera.sample_per_pixel = 16;
+    camera.sample_per_pixel = 32;
     camera.depth = 50;
     camera.reinit();
     camera.render(&scene);

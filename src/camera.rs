@@ -2,6 +2,7 @@ use std::cell::OnceCell;
 
 use image::{Rgb, RgbImage};
 use nalgebra::{clamp, Vector3};
+use rayon::iter::{IntoParallelIterator, ParallelBridge, ParallelIterator};
 
 use crate::{
     ray::Ray,
@@ -143,18 +144,28 @@ impl Camera {
         let height = self.image_height;
 
         let mut image = RgbImage::new(width as u32, height as u32);
-        for j in 0..height as u32 {
-            for i in 0..width as u32 {
-                let mut color = Vector3::new(0.0, 0.0, 0.0);
-                for _ in 0..self.sample_per_pixel {
-                    let ray = self.get_ray(i, j);
-                    color += Self::ray_color(&ray, &scene, self.depth);
-                }
 
-                image.put_pixel(i, j, color_to_rgb(color / self.sample_per_pixel as f32));
+        image.par_enumerate_pixels_mut().for_each(|(i, j, pixel)| {
+            let mut color = Vector3::new(0.0, 0.0, 0.0);
+            for _ in 0..self.sample_per_pixel {
+                let ray = self.get_ray(i, j);
+                color += Self::ray_color(&ray, &scene, self.depth);
             }
-        }
-        image.save("image_32spp.png").expect("Failed to save image");
+            *pixel=color_to_rgb(color / self.sample_per_pixel as f32);
+        });
+
+
+        // for j in 0..height {
+        //     for i in 0..width as u32 {
+        //         let mut color = Vector3::new(0.0, 0.0, 0.0);
+        //         for _ in 0..self.sample_per_pixel {
+        //             let ray = self.get_ray(i, j);
+        //             color += Self::ray_color(&ray, &scene, self.depth);
+        //         }
+        //         image.put_pixel(i, j, color_to_rgb(color / self.sample_per_pixel as f32));
+        //     }
+        // }
+        image.save("image.png").expect("Failed to save image");
     }
 
     fn get_ray(&self, x: u32, y: u32) -> Ray {
