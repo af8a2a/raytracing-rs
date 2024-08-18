@@ -1,38 +1,29 @@
 use image::{Pixel, Rgb, RgbImage};
 use nalgebra::{Normed, Vector3};
-use pbrt_rs::ray::Ray;
+use pbrt_rs::{
+    hit::{sphere, Hittable},
+    ray::Ray,
+    scene::Scene,
+};
 
-fn ray_color(ray: &Ray) -> Vector3<f32> {
-    let t = hit_sphere(Vector3::new(0.0, 0.0, -1.0), 0.5, ray);
-    if t > 0.0 {
-        let n = ray.at(t) - Vector3::new(0.0, 0.0, -1.0);
-        return 0.5 * Vector3::new(n.x + 1.0, n.y + 1.0, n.z + 1.0);
+fn ray_color(ray: &Ray, scene: &Scene) -> Vector3<f32> {
+    let hit = scene.hit(ray, 0.0, f32::MAX);
+    match hit {
+        Some(record) => 0.5 * (record.normal + Vector3::new(1.0, 1.0, 1.0)),
+        None => {
+            let unit_direction = ray.direction.normalize();
+            let t = 0.5 * (unit_direction.y + 1.0);
+            (1.0 - t) * Vector3::new(1.0, 1.0, 1.0) + t * Vector3::new(0.5, 0.7, 1.0)
+        }
     }
-    let unit_dir = ray.direction.normalize();
-    let t = 0.5 * (unit_dir.y + 1.0);
-    (1.0 - t) * Vector3::new(1.0, 1.0, 1.0) + t * Vector3::new(0.5, 0.7, 1.0)
 }
 
 fn color_to_rgb(color: Vector3<f32>) -> Rgb<u8> {
     Rgb([
-        (255.0 * color.x) as u8,
-        (255.0 * color.y) as u8,
-        (255.0 * color.z) as u8,
+        (255.9 * color.x) as u8,
+        (255.9 * color.y) as u8,
+        (255.9 * color.z) as u8,
     ])
-}
-
-fn hit_sphere(center: Vector3<f32>, radius: f32, ray: &Ray) -> f32 {
-    let oc = center - ray.origin;
-    let a = ray.direction.norm_squared();
-    let h = ray.direction.dot(&oc);
-    let c = oc.norm_squared() - radius * radius;
-    let discriminant = h * h - a * c;
-
-    if discriminant <= 0.0 {
-        -1.0
-    } else {
-        (h - discriminant.sqrt()) / a
-    }
 }
 
 fn main() {
@@ -57,17 +48,50 @@ fn main() {
 
     let pixel100_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
 
-    let mut image = RgbImage::new(width as u32, height as u32);
-    for j in 0..height as u32 {
-        for i in 0..width as u32 {
-            let pixel_center =
-                pixel100_loc + (i as f32 * pixel_delta_u) + (j as f32 * pixel_delta_v);
+    let mut scene = Scene::default();
+    scene.objects.push(Hittable::Sphere(sphere::Sphere {
+        center: Vector3::new(0.0, 0.0, -1.0),
+        radius: 0.5,
+    }));
 
-            let ray_dir = pixel_center - camera_center;
-            let ray = Ray::new(camera_center, ray_dir);
-            let color = ray_color(&ray);
-            image.put_pixel(i, j, color_to_rgb(color));
+    scene.objects.push(Hittable::Sphere(sphere::Sphere {
+        center: Vector3::new(0.0, -100.5, -1.0),
+        radius: 100.0,
+    }));
+
+    let write_png=||{
+        let mut image = RgbImage::new(width as u32, height as u32);
+        for j in 0..height as u32 {
+            for i in 0..width as u32 {
+                let pixel_center =
+                    pixel100_loc + (i as f32 * pixel_delta_u) + (j as f32 * pixel_delta_v);
+    
+                let ray_dir = pixel_center - camera_center;
+                let ray = Ray::new(camera_center, ray_dir.normalize());
+                let color = ray_color(&ray, &scene);
+                image.put_pixel(i, j, color_to_rgb(color));
+            }
         }
-    }
-    image.save("image.png").expect("Failed to save image");
+        image.save("image.png").expect("Failed to save image");    
+    };
+    let write_ppm=||{
+        println!("P3\n{} {}\n255", width, height);
+        for j in 0..height as u32 {
+            for i in 0..width as u32 {
+                let pixel_center =
+                    pixel100_loc + (i as f32 * pixel_delta_u) + (j as f32 * pixel_delta_v);
+    
+                let ray_dir = pixel_center - camera_center;
+                let ray = Ray::new(camera_center, ray_dir.normalize());
+                let color = ray_color(&ray, &scene);
+                let r=(color.x*255.99) as u8;
+                let g=(color.y*255.99) as u8;
+                let b=(color.z*255.99) as u8;
+                println!("{} {} {}",r,g,b);
+            }
+        }
+
+    };
+    // write_ppm();
+    write_png();
 }
