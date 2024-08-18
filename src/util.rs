@@ -104,3 +104,4 @@ pub fn reflectance(cosine: f32, refraction_index: f32) -> f32 {
     let r0 = r0 * r0;
     r0 + (1.0 - r0) * ((1.0 - cosine).powi(5))
 }
+

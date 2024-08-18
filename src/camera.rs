@@ -41,6 +41,11 @@ pub struct Camera {
     pub look_at: Vector3<f32>,
     pub vup: Vector3<f32>,
 
+    pub defocus_angle: f32,
+    pub focus_dist: f32,
+    defocus_disk_u: Vector3<f32>,
+    defocus_disk_v: Vector3<f32>,
+
     u: Vector3<f32>,
     v: Vector3<f32>,
     w: Vector3<f32>,
@@ -56,11 +61,14 @@ impl Camera {
         let image_height = ((image_width as f32 / aspect_ratio) as u32).max(1);
         let center = look_from.clone();
 
-        let focal_length = (look_from - look_at).norm();
+        // let focal_length = (look_from - look_at).norm();
         let theta = f32::to_radians(vfov);
         let h = f32::tan(theta / 2.0);
 
-        let viewport_height = 2.0 * h * focal_length;
+        let focus_dist = 10.0;
+        let defocus_angle = 0.0;
+
+        let viewport_height = 2.0 * h * focus_dist;
         let viewport_width = viewport_height * image_width as f32 / image_height as f32;
 
         let w = (look_from - look_at).normalize();
@@ -72,8 +80,12 @@ impl Camera {
 
         let pixel_delta_u = viewport_u / image_width as f32;
         let pixel_delta_v = viewport_v / image_height as f32;
-        let viewport_upper_left = center - (focal_length * w) - viewport_u / 2.0 - viewport_v / 2.0;
+        let viewport_upper_left = center - (focus_dist * w) - viewport_u / 2.0 - viewport_v / 2.0;
         let pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
+
+        let defocus_radius = focus_dist * f32::tan(f32::to_radians(defocus_angle / 2.0));
+        let defocus_disk_u = u * defocus_radius;
+        let defocus_disk_v = v * defocus_radius;
 
         Camera {
             aspect_ratio,
@@ -92,16 +104,20 @@ impl Camera {
             u,
             v,
             w,
+            defocus_angle,
+            focus_dist,
+            defocus_disk_u,
+            defocus_disk_v,
         }
     }
     pub fn reinit(&mut self) {
         self.image_height = ((self.image_width as f32 / self.aspect_ratio) as u32).max(1);
         self.center = self.look_from.clone();
-        let focal_length = (self.look_from - self.look_at).norm();
+        // let focal_length = (self.look_from - self.look_at).norm();
         let theta = f32::to_radians(self.vfov);
         let h = f32::tan(theta / 2.0);
 
-        let viewport_height = 2.0 * h * focal_length;
+        let viewport_height = 2.0 * h * self.focus_dist;
         let viewport_width = viewport_height * self.image_width as f32 / self.image_height as f32;
 
         self.w = (self.look_from - self.look_at).normalize();
@@ -114,13 +130,18 @@ impl Camera {
         self.pixel_delta_u = viewport_u / self.image_width as f32;
         self.pixel_delta_v = viewport_v / self.image_height as f32;
         let viewport_upper_left =
-            self.center - (focal_length * self.w) - viewport_u / 2.0 - viewport_v / 2.0;
+            self.center - (self.focus_dist * self.w) - viewport_u / 2.0 - viewport_v / 2.0;
         self.pixel00_loc = viewport_upper_left + 0.5 * (self.pixel_delta_u + self.pixel_delta_v);
+
+        let defocus_radius = self.focus_dist * f32::tan(f32::to_radians(self.defocus_angle / 2.0));
+        self.defocus_disk_u = self.u * defocus_radius;
+        self.defocus_disk_v = self.v * defocus_radius;
     }
+
     pub fn render(&self, scene: &Scene) {
         let width = self.image_width;
         let height = self.image_height;
-        // let camera_center = self.center;
+
         let mut image = RgbImage::new(width as u32, height as u32);
         for j in 0..height as u32 {
             for i in 0..width as u32 {
@@ -141,7 +162,11 @@ impl Camera {
         let pixel_sample = self.pixel00_loc
             + (x as f32 + offset.x) * self.pixel_delta_u
             + (y as f32 + offset.y) * self.pixel_delta_v;
-        let ray_origin = self.center;
+        let ray_origin = if self.defocus_angle <= 0.0 {
+            self.center
+        } else {
+            self.defocus_disk_sample()
+        };
         let ray_dir = pixel_sample - ray_origin;
 
         Ray::new(ray_origin, ray_dir.normalize())
@@ -170,5 +195,10 @@ impl Camera {
                 (1.0 - t) * Vector3::new(1.0, 1.0, 1.0) + t * Vector3::new(0.5, 0.7, 1.0)
             }
         }
+    }
+
+    fn defocus_disk_sample(&self) -> Vector3<f32> {
+        let p = random_in_unit_sphere();
+        self.center + self.defocus_disk_u * p.x + self.defocus_disk_v * p.y
     }
 }
