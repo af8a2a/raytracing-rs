@@ -1,12 +1,13 @@
 use nalgebra::Vector3;
 
-use crate::util::Interval;
+use crate::{material::Material, util::Interval};
 
 use super::HitRecord;
 
 pub struct Sphere {
     pub center: Vector3<f32>,
     pub radius: f32,
+    pub material: Material,
 }
 
 impl Sphere {
@@ -37,6 +38,7 @@ impl Sphere {
             p,
             normal,
             front_face: false,
+            material: self.material.clone(),
         };
         hit_record.set_face_normal(ray, outward_normal);
         Some(hit_record)

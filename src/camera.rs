@@ -62,7 +62,7 @@ impl Camera {
             pixel00_loc,
             pixel_delta_u,
             pixel_delta_v,
-            sample_per_pixel: 32,
+            sample_per_pixel: 100,
             depth: 50,
         }
     }
@@ -107,8 +107,15 @@ impl Camera {
         let hit = scene.hit(ray, &Interval::new(0.00000001, f32::MAX));
         match hit {
             Some(record) => {
-                let dir = record.normal + random_in_unit_sphere();
-                return 0.5 * Self::ray_color(&Ray::new(record.p, dir), scene, depth - 1);
+                if let Some((scattered, attenuation)) = record.material.scatter(ray, &record) {
+                    return attenuation.component_mul(&Self::ray_color(
+                        &scattered,
+                        scene,
+                        depth - 1,
+                    ));
+                }
+
+                return Vector3::new(0.0, 0.0, 0.0);
             }
             None => {
                 let unit_direction = ray.direction.normalize();
