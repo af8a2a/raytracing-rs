@@ -1,3 +1,5 @@
+use nalgebra::Vector3;
+use rand::{distributions::Uniform, thread_rng, Rng};
 #[derive(Debug, Clone)]
 pub struct Interval {
     pub min: f32,
@@ -19,6 +21,15 @@ impl Interval {
     pub fn size(&self) -> f32 {
         self.max - self.min
     }
+    pub fn clamp(&self, value: f32) -> f32 {
+        if value < self.min {
+            self.min
+        } else if value > self.max {
+            self.max
+        } else {
+            value
+        }
+    }
 }
 impl Default for Interval {
     fn default() -> Self {
@@ -26,12 +37,13 @@ impl Default for Interval {
     }
 }
 
+pub fn random_f32() -> f32 {
+    let mut rng = thread_rng();
 
-const EMPTY_INTERVAL: Interval = Interval {
-    min: f32::MAX,
-    max: f32::MIN,
-};
-const UNIVERSE_INTERVAL: Interval = Interval {
-    min: f32::MIN,
-    max: f32::MAX,
-};
+    rng.sample(Uniform::new(0.0, 1.0))
+}
+
+/// Returns the vector to a random point in the [-.5,-.5]-[+.5,+.5] unit square.
+pub fn sample_square() -> Vector3<f32> {
+    Vector3::new(random_f32() - 0.5, random_f32() - 0.5, 0.0)
+}

@@ -1,25 +1,19 @@
+use std::cell::OnceCell;
+
 use image::{Rgb, RgbImage};
 use nalgebra::{clamp, Vector3};
 
-use crate::{ray::Ray, scene::Scene, util::Interval};
-
-fn ray_color(ray: &Ray, scene: &Scene) -> Vector3<f32> {
-    let hit = scene.hit(ray, &Interval::new(0.0, f32::MAX));
-    match hit {
-        Some(record) => 0.5 * (record.normal + Vector3::new(1.0, 1.0, 1.0)),
-        None => {
-            let unit_direction = ray.direction.normalize();
-            let t = 0.5 * (unit_direction.y + 1.0);
-            (1.0 - t) * Vector3::new(1.0, 1.0, 1.0) + t * Vector3::new(0.5, 0.7, 1.0)
-        }
-    }
-}
+use crate::{
+    ray::Ray,
+    scene::Scene,
+    util::{sample_square, Interval},
+};
 
 fn color_to_rgb(color: Vector3<f32>) -> Rgb<u8> {
     Rgb([
-        (255.9 * color.x) as u8,
-        (255.9 * color.y) as u8,
-        (255.9 * color.z) as u8,
+        (256.0 * f32::clamp(color.x, 0.0, 0.999)) as u8,
+        (256.0 * f32::clamp(color.y, 0.0, 0.999)) as u8,
+        (256.0 * f32::clamp(color.z, 0.0, 0.999)) as u8,
     ])
 }
 
@@ -31,6 +25,7 @@ pub struct Camera {
     pixel00_loc: Vector3<f32>,
     pixel_delta_u: Vector3<f32>,
     pixel_delta_v: Vector3<f32>,
+    sample_per_pixel: u32,
 }
 
 impl Camera {
@@ -58,28 +53,52 @@ impl Camera {
             pixel00_loc,
             pixel_delta_u,
             pixel_delta_v,
+            sample_per_pixel: 32,
         }
     }
 
     pub fn render(&self, scene: &Scene) {
         let width = self.image_width;
         let height = self.image_height;
-        let pixel00_loc = self.pixel00_loc;
-        let pixel_delta_u= self.pixel_delta_u;
-        let pixel_delta_v = self.pixel_delta_v;
-        let camera_center= self.center;
+        // let pixel00_loc = self.pixel00_loc;
+        // let pixel_delta_u = self.pixel_delta_u;
+        // let pixel_delta_v = self.pixel_delta_v;
+        // let camera_center = self.center;
         let mut image = RgbImage::new(width as u32, height as u32);
         for j in 0..height as u32 {
             for i in 0..width as u32 {
-                let pixel_center =
-                    pixel00_loc + (i as f32 * pixel_delta_u) + (j as f32 * pixel_delta_v);
+                let mut color = Vector3::new(0.0, 0.0, 0.0);
+                for _ in 0..self.sample_per_pixel {
+                    let ray = self.get_ray(i, j);
+                    color += Self::ray_color(&ray, &scene);
+                }
 
-                let ray_dir = pixel_center - camera_center;
-                let ray = Ray::new(camera_center, ray_dir.normalize());
-                let color = ray_color(&ray, &scene);
-                image.put_pixel(i, j, color_to_rgb(color));
+                image.put_pixel(i, j, color_to_rgb(color / self.sample_per_pixel as f32));
             }
         }
-        image.save("image.png").expect("Failed to save image");
+        image.save("image_32spp.png").expect("Failed to save image");
+    }
+
+    fn get_ray(&self, x: u32, y: u32) -> Ray {
+        let offset = sample_square();
+        let pixel_sample = self.pixel00_loc
+            + (x as f32 + offset.x) * self.pixel_delta_u
+            + (y as f32 + offset.y) * self.pixel_delta_v;
+        let ray_origin = self.center;
+        let ray_dir = pixel_sample - ray_origin;
+
+        Ray::new(ray_origin, ray_dir.normalize())
+    }
+
+    fn ray_color(ray: &Ray, scene: &Scene) -> Vector3<f32> {
+        let hit = scene.hit(ray, &Interval::new(0.0, f32::MAX));
+        match hit {
+            Some(record) => 0.5 * (record.normal + Vector3::new(1.0, 1.0, 1.0)),
+            None => {
+                let unit_direction = ray.direction.normalize();
+                let t = 0.5 * (unit_direction.y + 1.0);
+                (1.0 - t) * Vector3::new(1.0, 1.0, 1.0) + t * Vector3::new(0.5, 0.7, 1.0)
+            }
+        }
     }
 }
