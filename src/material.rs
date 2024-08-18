@@ -37,7 +37,7 @@ impl Lambertian {
             scatter_direction = hit_record.normal;
         }
 
-        let scattered = Ray::new(hit_record.p, scatter_direction);
+        let scattered = Ray::new_with_time(hit_record.p, scatter_direction,ray.time);
         let attenuation = self.albedo.clone();
         Some((scattered, attenuation))
     }
@@ -55,7 +55,7 @@ impl Metal {
     pub fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<(Ray, Vector3<f32>)> {
         let reflected =
             random_in_unit_sphere() * self.fuzz + reflect(&ray.direction, &hit_record.normal).normalize();
-        let scattered = Ray::new(hit_record.p, reflected);
+        let scattered = Ray::new_with_time(hit_record.p, reflected,ray.time);
         let attenuation = self.albedo.clone();
         if scattered.direction.dot(&hit_record.normal) > 0.0 {
             Some((scattered, attenuation))
@@ -93,7 +93,7 @@ impl Dielectric {
             direction = refract(&unit_dir, &hit_record.normal, ri);
         };
 
-        let scattered = Ray::new(hit_record.p, direction);
+        let scattered = Ray::new_with_time(hit_record.p, direction,ray.time);
         Some((scattered, attenuation))
     }
 }

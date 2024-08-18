@@ -7,7 +7,7 @@ use pbrt_rs::{
     hit::{sphere, Hittable},
     material::{Dielectric, Lambertian, Material, Metal},
     scene::Scene,
-    util::{random_f32, range_random_f32},
+    util::{random_f32, random_vec, range_random_f32},
 };
 
 fn main() {
@@ -19,6 +19,7 @@ fn main() {
         center: Vector3::new(0.0, -100.0, 0.0),
         radius: 100.0,
         material: material_ground,
+        motion: None,
     }));
     for i in -11..11 {
         for j in -11..11 {
@@ -48,10 +49,12 @@ fn main() {
                 } else {
                     Material::Dielectric(Dielectric::new(1.5))
                 };
+                let center2 = center + Vector3::new(0.0, range_random_f32(0.0, 0.5), 0.0);
                 scene.objects.push(Hittable::Sphere(sphere::Sphere {
                     center,
                     radius: 0.2,
                     material,
+                    motion: Some(center2-center),
                 }))
             }
         }
@@ -61,28 +64,31 @@ fn main() {
         center: Vector3::new(0.0, 1.0, 0.0),
         radius: 1.0,
         material: material1,
+        motion: None,
     }));
     let material2 = Material::Diffuse(Lambertian::new(Vector3::new(0.4, 0.2, 0.1)));
     scene.objects.push(Hittable::Sphere(sphere::Sphere {
         center: Vector3::new(-4.0, 1.0, 0.0),
         radius: 1.0,
         material: material2,
+        motion: None,
     }));
     let material3 = Material::Metal(Metal::new(Vector3::new(0.7, 0.6, 0.5), 0.0));
     scene.objects.push(Hittable::Sphere(sphere::Sphere {
         center: Vector3::new(4.0, 1.0, 0.0),
         radius: 1.0,
         material: material3,
+        motion: None,
     }));
 
-    let mut camera = Camera::new(16.0 / 9.0, 1200);
+    let mut camera = Camera::new(16.0 / 9.0, 400);
     camera.look_from = Vector3::new(13.0, 2.0, 3.0);
     camera.look_at = Vector3::new(0.0, 0.0, -1.0);
     camera.vup = Vector3::new(0.0, 1.0, 0.0);
     camera.defocus_angle = 0.6;
     camera.focus_dist = 10.0;
     camera.vfov = 20.0;
-    camera.sample_per_pixel = 32;
+    camera.sample_per_pixel = 100;
     camera.depth = 50;
     camera.reinit();
     camera.render(&scene);

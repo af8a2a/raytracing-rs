@@ -8,11 +8,17 @@ pub struct Sphere {
     pub center: Vector3<f32>,
     pub radius: f32,
     pub material: Material,
+
+    pub motion: Option<Vector3<f32>>,
 }
 
 impl Sphere {
     pub fn hit(&self, ray: &crate::ray::Ray, interval: &Interval) -> Option<HitRecord> {
-        let oc = self.center - ray.origin;
+        let center=match self.motion{
+            Some(_) => self.sphere_center(ray.time),
+            None => self.center,
+        };
+        let oc = center - ray.origin;
         let a = ray.direction.norm_squared();
         let h = ray.direction.dot(&oc);
         let c = oc.norm_squared() - self.radius * self.radius;
@@ -31,8 +37,8 @@ impl Sphere {
         }
         let t = root;
         let p = ray.at(t);
-        let normal = (p - self.center) / self.radius;
-        let outward_normal = (p - self.center) / self.radius;
+        let normal = (p - center) / self.radius;
+        let outward_normal = (p - center) / self.radius;
         let mut hit_record = HitRecord {
             t,
             p,
@@ -42,5 +48,9 @@ impl Sphere {
         };
         hit_record.set_face_normal(ray, outward_normal);
         Some(hit_record)
+    }
+
+    pub fn sphere_center(&self, time: f32) -> Vector3<f32> {
+        self.center + self.motion.unwrap_or(Vector3::zeros()) * time
     }
 }

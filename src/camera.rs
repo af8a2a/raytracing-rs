@@ -7,7 +7,7 @@ use rayon::iter::{IntoParallelIterator, ParallelBridge, ParallelIterator};
 use crate::{
     ray::Ray,
     scene::Scene,
-    util::{random_in_unit_sphere, random_on_hemisphere, sample_square, Interval},
+    util::{random_f32, random_in_unit_sphere, random_on_hemisphere, sample_square, Interval},
 };
 
 fn linear_to_gamma(color: f32) -> f32 {
@@ -151,9 +151,8 @@ impl Camera {
                 let ray = self.get_ray(i, j);
                 color += Self::ray_color(&ray, &scene, self.depth);
             }
-            *pixel=color_to_rgb(color / self.sample_per_pixel as f32);
+            *pixel = color_to_rgb(color / self.sample_per_pixel as f32);
         });
-
 
         // for j in 0..height {
         //     for i in 0..width as u32 {
@@ -179,8 +178,8 @@ impl Camera {
             self.defocus_disk_sample()
         };
         let ray_dir = pixel_sample - ray_origin;
-
-        Ray::new(ray_origin, ray_dir.normalize())
+        let ray_time = random_f32();
+        Ray::new_with_time(ray_origin, ray_dir.normalize(), ray_time)
     }
 
     fn ray_color(ray: &Ray, scene: &Scene, depth: i32) -> Vector3<f32> {
