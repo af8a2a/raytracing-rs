@@ -9,11 +9,19 @@ use crate::{
     util::{random_in_unit_sphere, random_on_hemisphere, sample_square, Interval},
 };
 
+fn linear_to_gamma(color: f32) -> f32 {
+    if color > 0.0 {
+        color.sqrt()
+    } else {
+        0.0
+    }
+}
+
 fn color_to_rgb(color: Vector3<f32>) -> Rgb<u8> {
     Rgb([
-        (256.0 * f32::clamp(color.x, 0.0, 0.999)) as u8,
-        (256.0 * f32::clamp(color.y, 0.0, 0.999)) as u8,
-        (256.0 * f32::clamp(color.z, 0.0, 0.999)) as u8,
+        (256.0 * f32::clamp(linear_to_gamma(color.x), 0.0, 0.999)) as u8,
+        (256.0 * f32::clamp(linear_to_gamma(color.y), 0.0, 0.999)) as u8,
+        (256.0 * f32::clamp(linear_to_gamma(color.z), 0.0, 0.999)) as u8,
     ])
 }
 
