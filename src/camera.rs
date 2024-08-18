@@ -6,7 +6,7 @@ use nalgebra::{clamp, Vector3};
 use crate::{
     ray::Ray,
     scene::Scene,
-    util::{sample_square, Interval},
+    util::{random_on_hemisphere, sample_square, Interval},
 };
 
 fn color_to_rgb(color: Vector3<f32>) -> Rgb<u8> {
@@ -26,6 +26,7 @@ pub struct Camera {
     pixel_delta_u: Vector3<f32>,
     pixel_delta_v: Vector3<f32>,
     sample_per_pixel: u32,
+    depth: i32,
 }
 
 impl Camera {
@@ -54,6 +55,7 @@ impl Camera {
             pixel_delta_u,
             pixel_delta_v,
             sample_per_pixel: 32,
+            depth: 50,
         }
     }
 
@@ -70,7 +72,7 @@ impl Camera {
                 let mut color = Vector3::new(0.0, 0.0, 0.0);
                 for _ in 0..self.sample_per_pixel {
                     let ray = self.get_ray(i, j);
-                    color += Self::ray_color(&ray, &scene);
+                    color += Self::ray_color(&ray, &scene, self.depth);
                 }
 
                 image.put_pixel(i, j, color_to_rgb(color / self.sample_per_pixel as f32));
@@ -90,10 +92,16 @@ impl Camera {
         Ray::new(ray_origin, ray_dir.normalize())
     }
 
-    fn ray_color(ray: &Ray, scene: &Scene) -> Vector3<f32> {
-        let hit = scene.hit(ray, &Interval::new(0.0, f32::MAX));
+    fn ray_color(ray: &Ray, scene: &Scene, depth: i32) -> Vector3<f32> {
+        if depth <= 0 {
+            return Vector3::new(0.0, 0.0, 0.0);
+        }
+        let hit = scene.hit(ray, &Interval::new(0.00000001, f32::MAX));
         match hit {
-            Some(record) => 0.5 * (record.normal + Vector3::new(1.0, 1.0, 1.0)),
+            Some(record) => {
+                let dir = random_on_hemisphere(&record.normal);
+                return 0.5 * Self::ray_color(&Ray::new(record.p, dir), scene, depth - 1);
+            }
             None => {
                 let unit_direction = ray.direction.normalize();
                 let t = 0.5 * (unit_direction.y + 1.0);
