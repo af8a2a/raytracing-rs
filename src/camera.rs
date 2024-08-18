@@ -33,8 +33,8 @@ pub struct Camera {
     pixel00_loc: Vector3<f32>,
     pixel_delta_u: Vector3<f32>,
     pixel_delta_v: Vector3<f32>,
-    sample_per_pixel: u32,
-    depth: i32,
+    pub sample_per_pixel: u32,
+    pub depth: i32,
 
     pub vfov: f32,
     pub look_from: Vector3<f32>,
