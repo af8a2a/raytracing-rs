@@ -3,7 +3,7 @@ use nalgebra::Vector3;
 use crate::{
     hit::{self, HitRecord},
     ray::Ray,
-    util::{near_zero, random_in_unit_sphere, reflect, refract},
+    util::{near_zero, random_f32, random_in_unit_sphere, reflect, reflectance, refract},
 };
 #[derive(Debug, Clone, Copy)]
 pub enum Material {
@@ -87,7 +87,7 @@ impl Dielectric {
         let sin_theta = (1.0 - cos_theta * cos_theta).sqrt();
         let cannot_refract = ri * sin_theta > 1.0;
         let direction;
-        if cannot_refract {
+        if cannot_refract || reflectance(cos_theta, ri) > random_f32() {
             direction = reflect(&unit_dir, &hit_record.normal);
         } else {
             direction = refract(&unit_dir, &hit_record.normal, ri);
