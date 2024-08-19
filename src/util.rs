@@ -30,6 +30,13 @@ impl Interval {
             value
         }
     }
+    pub fn merge(lhs: &Self, rhs: &Self) -> Self {
+        Self::new(lhs.min.min(rhs.min), lhs.max.max(rhs.max))
+    }
+    pub fn expand(&self, delta: f32) -> Interval {
+        let padding = delta / 2.0;
+        Interval::new(self.min - padding, self.max + padding)
+    }
 }
 impl Default for Interval {
     fn default() -> Self {
@@ -100,8 +107,14 @@ pub fn refract(uv: &Vector3<f32>, n: &Vector3<f32>, etai_over_etat: f32) -> Vect
 }
 
 pub fn reflectance(cosine: f32, refraction_index: f32) -> f32 {
-    let r0= (1.0 - refraction_index) / (1.0 + refraction_index);
+    let r0 = (1.0 - refraction_index) / (1.0 + refraction_index);
     let r0 = r0 * r0;
     r0 + (1.0 - r0) * ((1.0 - cosine).powi(5))
 }
 
+
+pub fn random_int(min: i32, max: i32) -> i32 {
+    let mut rng = thread_rng();
+
+    rng.sample(Uniform::new(min, max))
+}

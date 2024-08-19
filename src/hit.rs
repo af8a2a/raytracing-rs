@@ -1,7 +1,7 @@
 pub mod sphere;
 use nalgebra::Vector3;
 
-use crate::{material::Material, ray::Ray, util::Interval};
+use crate::{bvh::{BVHNode, AABB}, material::Material, ray::Ray, util::Interval};
 #[derive(Debug, Clone)]
 pub struct HitRecord {
     pub t: f32,
@@ -20,14 +20,23 @@ impl HitRecord {
         };
     }
 }
+#[derive(Debug, Clone)]
 pub enum Hittable {
     Sphere(sphere::Sphere),
+    BVHNode(BVHNode),
 }
 
 impl Hittable {
     pub fn hit(&self, ray: &Ray, interval: &Interval) -> Option<HitRecord> {
         match self {
             Hittable::Sphere(sphere) => sphere.hit(ray, interval),
+            Hittable::BVHNode(node) => node.hit(ray, interval),
+        }
+    }
+    pub fn bbox(&self)->&AABB{
+        match self {
+            Hittable::Sphere(sphere) => &sphere.bbox,
+            Hittable::BVHNode(node) => &node.bbox,
         }
     }
 }

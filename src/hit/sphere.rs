@@ -1,20 +1,51 @@
 use nalgebra::Vector3;
 
-use crate::{material::Material, util::Interval};
+use crate::{bvh::AABB, material::Material, util::Interval};
 
 use super::HitRecord;
-
+#[derive(Debug, Clone)]
 pub struct Sphere {
     pub center: Vector3<f32>,
     pub radius: f32,
     pub material: Material,
 
     pub motion: Option<Vector3<f32>>,
+    pub bbox: AABB,
 }
 
 impl Sphere {
+    pub fn new(center: Vector3<f32>, radius: f32, material: Material) -> Self {
+        Self {
+            center,
+            radius,
+            material,
+            motion: None,
+            bbox: AABB::new(
+                center - Vector3::new(radius, radius, radius),
+                center + Vector3::new(radius, radius, radius),
+            ),
+        }
+    }
+    pub fn new_with_motion(center: Vector3<f32>,motion_center:Vector3<f32>, radius: f32, material: Material) -> Self {
+        let rvec=Vector3::new(radius,radius,radius);
+        let box1=AABB::new(center-rvec,center+rvec);
+        let box2=AABB::new(motion_center-rvec,motion_center+rvec);
+        let bbox=AABB::merge(&box1, &box2);
+
+        Self {
+            center,
+            radius,
+            material,
+            motion: None,
+            bbox,
+        }
+    }
+
     pub fn hit(&self, ray: &crate::ray::Ray, interval: &Interval) -> Option<HitRecord> {
-        let center=match self.motion{
+        // if !self.bbox.hit(ray, interval){
+        //     return None;
+        // }
+        let center = match self.motion {
             Some(_) => self.sphere_center(ray.time),
             None => self.center,
         };
