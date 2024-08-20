@@ -4,7 +4,7 @@ use rayon::iter::Once;
 use crate::{
     hit::{HitRecord, Hittable},
     scene::Scene,
-    util::{random_int, Interval},
+    util::{random_int, Interval, EMPTY_INTERVAL, UNIVERSE_INTERVAL},
 };
 #[derive(Default, Debug, Clone)]
 pub struct AABB {
@@ -78,7 +78,36 @@ impl AABB {
         }
         true
     }
+
+    pub fn longest_axis(&self)->i32{
+        if self.x.size()>self.y.size(){
+            if self.x.size()>self.z.size(){
+                0
+            }else{
+                2
+            }
+    }else{
+        if self.y.size()>self.z.size(){
+            1
+        }else{
+            2
+        }
+    }
 }
+
+}
+
+pub const AABB_EMPTY: AABB = AABB {
+    x: EMPTY_INTERVAL,
+    y: EMPTY_INTERVAL,
+    z: EMPTY_INTERVAL,
+};
+
+pub const AABB_UNIVERSE: AABB = AABB {
+    x: UNIVERSE_INTERVAL,
+    y: UNIVERSE_INTERVAL,
+    z: UNIVERSE_INTERVAL,
+};
 
 #[derive(Debug, Clone)]
 pub struct BVHNode {
@@ -93,11 +122,15 @@ impl BVHNode {
         Self::new(&mut scene.objects.clone(), 0, scene.objects.len())
     }
     pub fn new(objects: &mut Vec<Hittable>, start: usize, end: usize) -> Self {
-        let axis = random_int(0, 2);
         let object_span = end - start;
         let left;
         let right;
+        let mut bbox = AABB_EMPTY.clone();
+        for obj in objects.iter() {
+            bbox = AABB::merge(&bbox, obj.bbox());
+        }
 
+        let axis=bbox.longest_axis(); 
         let box_compare = |a: &Hittable, b: &Hittable, axis_index: usize| {
             let a_axis_interval = a.bbox().axis_interval(axis_index);
             let b_axis_interval = b.bbox().axis_interval(axis_index);
@@ -134,14 +167,9 @@ impl BVHNode {
             let mid = start + object_span / 2;
             left = Box::new(Hittable::BVHNode(BVHNode::new(objects, start, mid)));
             right = Box::new(Hittable::BVHNode(BVHNode::new(objects, mid, end)));
-
         }
         let bbox = AABB::merge(&left.bbox(), &right.bbox());
-        Self {
-            bbox,
-            left,
-            right,
-        }
+        Self { bbox, left, right }
     }
 
     pub fn hit(&self, ray: &crate::ray::Ray, interval: &Interval) -> Option<HitRecord> {
@@ -157,7 +185,6 @@ impl BVHNode {
         if let Some(record) = self.right.hit(ray, &interval) {
             hit_record.replace(record);
         }
-
 
         hit_record
     }

@@ -1,3 +1,5 @@
+use core::f32;
+
 use nalgebra::Vector3;
 use rand::{distributions::Uniform, thread_rng, Rng};
 #[derive(Debug, Clone)]
@@ -5,6 +7,15 @@ pub struct Interval {
     pub min: f32,
     pub max: f32,
 }
+
+pub const EMPTY_INTERVAL: Interval = Interval {
+    min: f32::MAX,
+    max: f32::MIN,
+};
+pub const UNIVERSE_INTERVAL: Interval = Interval {
+    min: f32::MIN,
+    max: f32::MAX,
+};
 
 impl Interval {
     pub fn new(min: f32, max: f32) -> Self {
@@ -111,7 +122,6 @@ pub fn reflectance(cosine: f32, refraction_index: f32) -> f32 {
     let r0 = r0 * r0;
     r0 + (1.0 - r0) * ((1.0 - cosine).powi(5))
 }
-
 
 pub fn random_int(min: i32, max: i32) -> i32 {
     let mut rng = thread_rng();
