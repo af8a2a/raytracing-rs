@@ -1,4 +1,4 @@
-use nalgebra::Vector3;
+use nalgebra::{Vector2, Vector3};
 
 use crate::{bvh::AABB, material::Material, util::Interval};
 
@@ -76,6 +76,7 @@ impl Sphere {
             normal,
             front_face: false,
             material: self.material.clone(),
+            uv: Vector2::zeros(),
         };
         hit_record.set_face_normal(ray, outward_normal);
         Some(hit_record)

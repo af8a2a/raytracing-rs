@@ -3,11 +3,22 @@ use std::f32::consts::PI;
 use image::{Pixel, Rgb, RgbImage};
 use nalgebra::Vector3;
 use pbrt_rs::{
-    bvh::BVHNode, camera::Camera, hit::{sphere, Hittable}, material::{Dielectric, Lambertian, Material, Metal}, scene::Scene, util::{random_f32, random_vec, range_random_f32}
+    bvh::BVHNode,
+    camera::Camera,
+    hit::{sphere, Hittable},
+    material::{Dielectric, Lambertian, Material, Metal},
+    scene::Scene,
+    texture::{CheckerTexture, SolidColor, Texture},
+    util::{random_f32, random_vec, range_random_f32},
 };
 
 fn main() {
-    let material_ground = Material::Diffuse(Lambertian::new(Vector3::new(0.5, 0.5, 0.5)));
+    let checker = Texture::CheckerTexture(CheckerTexture::new_with_color(
+        &Vector3::new(0.2, 0.3, 0.1),
+        &Vector3::new(0.9, 0.9, 0.9),
+        0.32,
+    ));
+    let material_ground = Material::Diffuse(Lambertian::new(checker));
 
     let mut scene = Scene::default();
 
@@ -26,7 +37,7 @@ fn main() {
             );
             if (center - Vector3::new(4.0, 0.2, 0.0)).norm() > 0.9 {
                 let material = if choose_mat < 0.8 {
-                    Material::Diffuse(Lambertian::new(Vector3::new(
+                    Material::Diffuse(Lambertian::new_with_color(Vector3::new(
                         random_f32() * random_f32(),
                         random_f32() * random_f32(),
                         random_f32() * random_f32(),
@@ -56,7 +67,7 @@ fn main() {
         material1,
     )));
 
-    let material2 = Material::Diffuse(Lambertian::new(Vector3::new(0.4, 0.2, 0.1)));
+    let material2 = Material::Diffuse(Lambertian::new_with_color(Vector3::new(0.4, 0.2, 0.1)));
     scene.add(Hittable::Sphere(sphere::Sphere::new(
         Vector3::new(-4.0, 1.0, 0.0),
         1.0,
@@ -69,7 +80,9 @@ fn main() {
         1.0,
         material3,
     )));
-    let scene=Scene::new_with_bvh(pbrt_rs::hit::Hittable::BVHNode(BVHNode::new_with_scene(&scene)));
+    let scene = Scene::new_with_bvh(pbrt_rs::hit::Hittable::BVHNode(BVHNode::new_with_scene(
+        &scene,
+    )));
     // println!("{:#?}",scene);
     let mut camera = Camera::new(16.0 / 9.0, 400);
     camera.look_from = Vector3::new(13.0, 2.0, 3.0);

@@ -3,9 +3,10 @@ use nalgebra::Vector3;
 use crate::{
     hit::{self, HitRecord},
     ray::Ray,
+    texture::{SolidColor, Texture},
     util::{near_zero, random_f32, random_in_unit_sphere, reflect, reflectance, refract},
 };
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum Material {
     Diffuse(Lambertian),
     Metal(Metal),
@@ -21,24 +22,28 @@ impl Material {
         }
     }
 }
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Lambertian {
-    albedo: Vector3<f32>,
+    tex: Texture,
 }
 
 impl Lambertian {
-    pub fn new(albedo: Vector3<f32>) -> Self {
-        Self { albedo }
+    pub fn new_with_color(albedo: Vector3<f32>) -> Self {
+        Self {
+            tex: Texture::Color(SolidColor::new(albedo)),
+        }
     }
-
+    pub fn new(tex: Texture) -> Self {
+        Self { tex }
+    }
     pub fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<(Ray, Vector3<f32>)> {
         let mut scatter_direction = hit_record.normal + random_in_unit_sphere();
         if near_zero(&scatter_direction) {
             scatter_direction = hit_record.normal;
         }
 
-        let scattered = Ray::new_with_time(hit_record.p, scatter_direction,ray.time);
-        let attenuation = self.albedo.clone();
+        let scattered = Ray::new_with_time(hit_record.p, scatter_direction, ray.time);
+        let attenuation = self.tex.value(&hit_record.uv, &hit_record.p).clone();
         Some((scattered, attenuation))
     }
 }
@@ -53,9 +58,9 @@ impl Metal {
         Self { albedo, fuzz }
     }
     pub fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<(Ray, Vector3<f32>)> {
-        let reflected =
-            random_in_unit_sphere() * self.fuzz + reflect(&ray.direction, &hit_record.normal).normalize();
-        let scattered = Ray::new_with_time(hit_record.p, reflected,ray.time);
+        let reflected = random_in_unit_sphere() * self.fuzz
+            + reflect(&ray.direction, &hit_record.normal).normalize();
+        let scattered = Ray::new_with_time(hit_record.p, reflected, ray.time);
         let attenuation = self.albedo.clone();
         if scattered.direction.dot(&hit_record.normal) > 0.0 {
             Some((scattered, attenuation))
@@ -93,7 +98,7 @@ impl Dielectric {
             direction = refract(&unit_dir, &hit_record.normal, ri);
         };
 
-        let scattered = Ray::new_with_time(hit_record.p, direction,ray.time);
+        let scattered = Ray::new_with_time(hit_record.p, direction, ray.time);
         Some((scattered, attenuation))
     }
 }
