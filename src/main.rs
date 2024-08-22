@@ -12,7 +12,7 @@ use pbrt_rs::{
     util::{random_f32, random_vec, range_random_f32},
 };
 
-fn main() {
+fn build_random_scene() -> Scene {
     let checker = Texture::CheckerTexture(CheckerTexture::new_with_color(
         &Vector3::new(0.2, 0.3, 0.1),
         &Vector3::new(0.9, 0.9, 0.9),
@@ -83,12 +83,41 @@ fn main() {
     let scene = Scene::new_with_bvh(pbrt_rs::hit::Hittable::BVHNode(BVHNode::new_with_scene(
         &scene,
     )));
+    scene
+}
+
+fn checkered_spheres() -> Scene {
+    let mut scene = Scene::default();
+    let checker = Texture::CheckerTexture(CheckerTexture::new_with_color(
+        &Vector3::new(0.2, 0.3, 0.1),
+        &Vector3::new(0.9, 0.9, 0.9),
+        0.32,
+    ));
+    scene.add(Hittable::Sphere(sphere::Sphere::new(
+        Vector3::new(0.0, -10.0, 0.0),
+        10.0,
+        Material::Diffuse(Lambertian::new(checker.clone())),
+    )));
+    scene.add(Hittable::Sphere(sphere::Sphere::new(
+        Vector3::new(0.0, 10.0, 0.0),
+        10.0,
+        Material::Diffuse(Lambertian::new(checker)),
+    )));
+    let scene = Scene::new_with_bvh(pbrt_rs::hit::Hittable::BVHNode(BVHNode::new_with_scene(
+        &scene,
+    )));
+    scene
+}
+
+fn main() {
     // println!("{:#?}",scene);
+
+    let scene = build_random_scene();
     let mut camera = Camera::new(16.0 / 9.0, 400);
     camera.look_from = Vector3::new(13.0, 2.0, 3.0);
     camera.look_at = Vector3::new(0.0, 0.0, -1.0);
     camera.vup = Vector3::new(0.0, 1.0, 0.0);
-    camera.defocus_angle = 0.6;
+    camera.defocus_angle = 0.0;
     camera.focus_dist = 10.0;
     camera.vfov = 20.0;
     camera.sample_per_pixel = 160;

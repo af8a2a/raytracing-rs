@@ -36,18 +36,18 @@ pub struct CheckerTexture {
 }
 
 impl CheckerTexture {
-    pub fn new(odd: Box<Texture>, even: Box<Texture>, inv_scale: f32) -> Self {
+    pub fn new(odd: Box<Texture>, even: Box<Texture>, scale: f32) -> Self {
         Self {
             odd,
             even,
-            inv_scale,
+            inv_scale: 1.0 / scale,
         }
     }
-    pub fn new_with_color(odd: &Vector3<f32>, even: &Vector3<f32>, inv_scale: f32) -> Self {
+    pub fn new_with_color(odd: &Vector3<f32>, even: &Vector3<f32>, scale: f32) -> Self {
         Self {
             odd: Box::new(Texture::Color(SolidColor::new(odd.clone()))),
             even: Box::new(Texture::Color(SolidColor::new(even.clone()))),
-            inv_scale,
+            inv_scale: 1.0 / scale,
         }
     }
 
