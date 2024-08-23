@@ -138,7 +138,7 @@ fn earth() {
 
 fn perlin_sphere() {
     let mut scene = Scene::default();
-    let pertext = NoiseTexture::new();
+    let pertext = NoiseTexture::new(4.0);
 
     scene.add(Hittable::Sphere(sphere::Sphere::new(
         Vector3::new(0.0, -100.0, 0.0),
