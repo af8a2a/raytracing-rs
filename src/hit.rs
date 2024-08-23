@@ -3,17 +3,17 @@ use nalgebra::{Vector2, Vector3};
 
 use crate::{bvh::{BVHNode, AABB}, material::Material, ray::Ray, util::Interval};
 #[derive(Debug, Clone)]
-pub struct HitRecord {
+pub struct HitRecord<'a> {
     pub t: f32,
     pub p: Vector3<f32>,
     pub normal: Vector3<f32>,
     pub front_face: bool,
     pub uv:Vector2<f32>,
-    pub material: Material,
+    pub material:  &'a Material,
 }
 
 
-impl HitRecord {
+impl HitRecord<'_> {
     pub fn set_face_normal(&mut self, ray: &Ray, outward_normal: Vector3<f32>) {
         self.front_face = ray.direction.dot(&outward_normal) < 0.0;
         self.normal = if self.front_face {

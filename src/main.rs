@@ -5,10 +5,13 @@ use nalgebra::Vector3;
 use pbrt_rs::{
     bvh::BVHNode,
     camera::Camera,
-    hit::{sphere, Hittable},
+    hit::{
+        sphere::{self, Sphere},
+        Hittable,
+    },
     material::{Dielectric, Lambertian, Material, Metal},
     scene::Scene,
-    texture::{CheckerTexture, SolidColor, Texture},
+    texture::{CheckerTexture, ImageTexture, SolidColor, Texture},
     util::{random_f32, random_vec, range_random_f32},
 };
 
@@ -108,20 +111,44 @@ fn checkered_spheres() -> Scene {
     )));
     scene
 }
+fn earth() {
+    let image = image::open("assets/earthmap.jpg")
+        .expect("fail to open")
+        .into_rgb8();
 
-fn main() {
-    // println!("{:#?}",scene);
+    let earth_texture = ImageTexture::new(image);
+    let earth_surface = Material::Diffuse(Lambertian::new(Texture::ImageTexture(earth_texture)));
+    let globe = Sphere::new(Vector3::new(0.0, 0.0, 0.0), 2.0, earth_surface);
+    let mut scene = Scene::default();
+    scene.add(Hittable::Sphere(globe));
 
-    let scene = build_random_scene();
     let mut camera = Camera::new(16.0 / 9.0, 400);
-    camera.look_from = Vector3::new(13.0, 2.0, 3.0);
-    camera.look_at = Vector3::new(0.0, 0.0, -1.0);
+    camera.look_from = Vector3::new(0.0, 0.0, 12.0);
+    camera.look_at = Vector3::new(0.0, 0.0, 0.0);
     camera.vup = Vector3::new(0.0, 1.0, 0.0);
+
     camera.defocus_angle = 0.0;
     camera.focus_dist = 10.0;
     camera.vfov = 20.0;
-    camera.sample_per_pixel = 160;
+    camera.sample_per_pixel = 100;
     camera.depth = 50;
     camera.reinit();
     camera.render(&scene);
+}
+fn main() {
+    // println!("{:#?}",scene);
+
+    // let scene = build_random_scene();
+    // let mut camera = Camera::new(16.0 / 9.0, 400);
+    // camera.look_from = Vector3::new(13.0, 2.0, 3.0);
+    // camera.look_at = Vector3::new(0.0, 0.0, -1.0);
+    // camera.vup = Vector3::new(0.0, 1.0, 0.0);
+    // camera.defocus_angle = 0.0;
+    // camera.focus_dist = 10.0;
+    // camera.vfov = 20.0;
+    // camera.sample_per_pixel = 160;
+    // camera.depth = 50;
+    // camera.reinit();
+    // camera.render(&scene);
+    earth();
 }

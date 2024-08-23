@@ -24,17 +24,17 @@ impl Material {
 }
 #[derive(Debug, Clone)]
 pub struct Lambertian {
-    tex: Texture,
+    tex: Box<Texture>,
 }
 
 impl Lambertian {
     pub fn new_with_color(albedo: Vector3<f32>) -> Self {
         Self {
-            tex: Texture::Color(SolidColor::new(albedo)),
+            tex: Box::new(Texture::Color(SolidColor::new(albedo))),
         }
     }
     pub fn new(tex: Texture) -> Self {
-        Self { tex }
+        Self { tex: Box::new(tex) }
     }
     pub fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<(Ray, Vector3<f32>)> {
         let mut scatter_direction = hit_record.normal + random_in_unit_sphere();

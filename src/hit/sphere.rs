@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use nalgebra::{Vector2, Vector3};
 
 use crate::{bvh::AABB, material::Material, util::Interval};
@@ -26,11 +28,16 @@ impl Sphere {
             ),
         }
     }
-    pub fn new_with_motion(center: Vector3<f32>,motion_center:Vector3<f32>, radius: f32, material: Material) -> Self {
-        let rvec=Vector3::new(radius,radius,radius);
-        let box1=AABB::new(center-rvec,center+rvec);
-        let box2=AABB::new(motion_center-rvec,motion_center+rvec);
-        let bbox=AABB::merge(&box1, &box2);
+    pub fn new_with_motion(
+        center: Vector3<f32>,
+        motion_center: Vector3<f32>,
+        radius: f32,
+        material: Material,
+    ) -> Self {
+        let rvec = Vector3::new(radius, radius, radius);
+        let box1 = AABB::new(center - rvec, center + rvec);
+        let box2 = AABB::new(motion_center - rvec, motion_center + rvec);
+        let bbox = AABB::merge(&box1, &box2);
 
         Self {
             center,
@@ -40,7 +47,13 @@ impl Sphere {
             bbox,
         }
     }
-
+    fn get_sphere_uv(p: &Vector3<f32>) -> Vector2<f32> {
+        let theta = f32::acos(-p.y);
+        let phi = f32::atan2(-p.z, p.x) + PI;
+        let u = phi / (2.0 * PI);
+        let v = theta / PI;
+        Vector2::new(u, v)
+    }
     pub fn hit(&self, ray: &crate::ray::Ray, interval: &Interval) -> Option<HitRecord> {
         // if !self.bbox.hit(ray, interval){
         //     return None;
@@ -70,13 +83,14 @@ impl Sphere {
         let p = ray.at(t);
         let normal = (p - center) / self.radius;
         let outward_normal = (p - center) / self.radius;
+        let uv = Self::get_sphere_uv(&outward_normal);
         let mut hit_record = HitRecord {
             t,
             p,
             normal,
             front_face: false,
-            material: self.material.clone(),
-            uv: Vector2::zeros(),
+            material: &self.material,
+            uv,
         };
         hit_record.set_face_normal(ray, outward_normal);
         Some(hit_record)
