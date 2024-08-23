@@ -69,6 +69,20 @@ impl Perlin {
         Self::trilinear_interp(&c, u, v, w)
     }
 
+    pub fn turb(&self, p: &Vector3<f32>, depth: i32) -> f32 {
+        let mut accum = 0.0;
+        let mut temp_p = *p;
+        let mut weight = 1.0;
+
+        for _i in 0..depth {
+            accum += weight * self.noise(&temp_p);
+            weight *= 0.5;
+            temp_p *= 2.0;
+        }
+        accum.abs()
+    }
+
+
     fn trilinear_interp(c: &[[[Vector3<f32>; 2]; 2]; 2], u: f32, v: f32, w: f32) -> f32 {
         let uu = u * u * (3.0 - 2.0 * u);
         let vv = v * v * (3.0 - 2.0 * v);

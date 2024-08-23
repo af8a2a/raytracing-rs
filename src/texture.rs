@@ -114,7 +114,8 @@ impl NoiseTexture {
         }
     }
     pub fn value(&self, _uv: &Vector2<f32>, p: &Vector3<f32>) -> Vector3<f32> {
-        let noise = self.noise.noise(&(p * self.scale)) * 0.5 + 0.5;
+        // let noise = self.noise.noise(&(p * self.scale)) * 0.5 + 0.5;
+        let noise = self.noise.turb(p, 7);
         Vector3::new(noise, noise, noise)
     }
 }
