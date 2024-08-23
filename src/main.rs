@@ -141,8 +141,8 @@ fn perlin_sphere() {
     let pertext = NoiseTexture::new();
 
     scene.add(Hittable::Sphere(sphere::Sphere::new(
-        Vector3::new(0.0, -1000.0, 0.0),
-        1000.0,
+        Vector3::new(0.0, -100.0, 0.0),
+        100.0,
         Material::Diffuse(Lambertian::new(Texture::Noise(pertext.clone()))),
     )));
 

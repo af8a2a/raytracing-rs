@@ -45,9 +45,40 @@ impl Perlin {
     }
 
     pub fn noise(&self, p: &Vector3<f32>) -> f32 {
-        let i = ((4.0 * p.x) as i32) & 255;
-        let j = ((4.0 * p.y) as i32) & 255;
-        let k = ((4.0 * p.z) as i32) & 255;
-        self.randflots[self.perm_x[i as usize] ^ self.perm_y[j as usize] ^ self.perm_z[k as usize]]
+        let u = p.x - p.x.floor();
+        let v = p.y - p.y.floor();
+        let w = p.z - p.z.floor();
+
+        let i = p.x.floor() as i32;
+        let j = p.y.floor() as i32;
+        let k = p.z.floor() as i32;
+
+        let mut c = [[[0.0; 2]; 2]; 2];
+        for di in 0..2 {
+            for dj in 0..2 {
+                for dk in 0..2 {
+                    let x = self.perm_x[(i as usize + di) & 255];
+                    let y = self.perm_y[(j as usize + dj) & 255];
+                    let z = self.perm_z[(k as usize + dk) & 255];
+                    c[di][dj][dk] = self.randflots[x ^ y ^ z];
+                }
+            }
+        }
+        Self::trilinear_interp(&c, u, v, w)
+    }
+
+    fn trilinear_interp(c: &[[[f32; 2]; 2]; 2], u: f32, v: f32, w: f32) -> f32 {
+        let mut accum = 0.0;
+        for i in 0..2 {
+            for j in 0..2 {
+                for k in 0..2 {
+                    accum += ((i as f32 * u) + (1.0 - i as f32) * (1.0 - u))
+                        * (j as f32 * v + (1.0 - j as f32) * (1.0 - v))
+                        * (k as f32 * w + (1.0 - k as f32) * (1.0 - w))
+                        * c[i][j][k]
+                }
+            }
+        }
+        accum
     }
 }
