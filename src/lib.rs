@@ -6,3 +6,4 @@ pub mod camera;
 pub mod material;
 pub mod bvh;
 pub mod texture;
+pub mod noise;

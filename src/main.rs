@@ -11,7 +11,7 @@ use pbrt_rs::{
     },
     material::{Dielectric, Lambertian, Material, Metal},
     scene::Scene,
-    texture::{CheckerTexture, ImageTexture, SolidColor, Texture},
+    texture::{CheckerTexture, ImageTexture, NoiseTexture, SolidColor, Texture},
     util::{random_f32, random_vec, range_random_f32},
 };
 
@@ -135,6 +135,36 @@ fn earth() {
     camera.reinit();
     camera.render(&scene);
 }
+
+fn perlin_sphere() {
+    let mut scene = Scene::default();
+    let pertext = NoiseTexture::new();
+
+    scene.add(Hittable::Sphere(sphere::Sphere::new(
+        Vector3::new(0.0, -1000.0, 0.0),
+        1000.0,
+        Material::Diffuse(Lambertian::new(Texture::Noise(pertext.clone()))),
+    )));
+
+    scene.add(Hittable::Sphere(sphere::Sphere::new(
+        Vector3::new(0.0, 2.0, 0.0),
+        2.0,
+        Material::Diffuse(Lambertian::new(Texture::Noise(pertext))),
+    )));
+
+    let mut camera = Camera::new(16.0 / 9.0, 400);
+    camera.look_from = Vector3::new(13.0, 2.0, 3.0);
+    camera.look_at = Vector3::new(0.0, 0.0, -1.0);
+    camera.vup = Vector3::new(0.0, 1.0, 0.0);
+    camera.defocus_angle = 0.0;
+    camera.focus_dist = 10.0;
+    camera.vfov = 20.0;
+    camera.sample_per_pixel = 160;
+    camera.depth = 50;
+    camera.reinit();
+    camera.render(&scene);
+}
+
 fn main() {
     // println!("{:#?}",scene);
 
@@ -150,5 +180,5 @@ fn main() {
     // camera.depth = 50;
     // camera.reinit();
     // camera.render(&scene);
-    earth();
+    perlin_sphere();
 }

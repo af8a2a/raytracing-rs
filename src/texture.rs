@@ -1,12 +1,14 @@
-use std::cell::OnceCell;
 
 use image::RgbImage;
 use nalgebra::{Vector2, Vector3};
+
+use crate::noise::Perlin;
 #[derive(Debug, Clone)]
 pub enum Texture {
     Color(SolidColor),
     CheckerTexture(CheckerTexture),
     ImageTexture(ImageTexture),
+    Noise(NoiseTexture)
 }
 
 impl Texture {
@@ -15,6 +17,7 @@ impl Texture {
             Texture::Color(color) => color.value(uv, p),
             Texture::CheckerTexture(tex) => tex.value(uv, p),
             Texture::ImageTexture(tex) => tex.value(uv, p),
+            Texture::Noise(tex) => tex.value(uv, p),
         }
     }
 }
@@ -85,8 +88,8 @@ impl ImageTexture {
 
         let u = uv.x.clamp(0.0, 1.0);
         let v = 1.0 - uv.y.clamp(0.0, 1.0);
-        let i =( u  * self.image.width()  as f32) as u32;
-        let j =( v  * self.image.height() as f32) as u32;
+        let i = (u * self.image.width() as f32) as u32;
+        let j = (v * self.image.height() as f32) as u32;
         let pixel = self.image.get_pixel(i, j);
         let scale = 1.0 / 255.0;
         // println!("{},{}",i,j);
@@ -95,6 +98,22 @@ impl ImageTexture {
             pixel.0[1] as f32 * scale,
             pixel.0[2] as f32 * scale,
         )
-        
+    }
+}
+#[derive(Debug, Clone)]
+
+pub struct NoiseTexture {
+    noise: Perlin,
+}
+
+impl NoiseTexture {
+    pub fn new() -> Self {
+        Self {
+            noise: Perlin::new(),
+        }
+    }
+    pub fn value(&self, _uv: &Vector2<f32>, p: &Vector3<f32>) -> Vector3<f32> {
+        let noise = self.noise.noise(p);
+        Vector3::new(noise, noise, noise)
     }
 }
