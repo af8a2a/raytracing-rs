@@ -1,4 +1,3 @@
-
 use image::RgbImage;
 use nalgebra::{Vector2, Vector3};
 
@@ -8,7 +7,7 @@ pub enum Texture {
     Color(SolidColor),
     CheckerTexture(CheckerTexture),
     ImageTexture(ImageTexture),
-    Noise(NoiseTexture)
+    Noise(NoiseTexture),
 }
 
 impl Texture {
@@ -115,7 +114,7 @@ impl NoiseTexture {
         }
     }
     pub fn value(&self, _uv: &Vector2<f32>, p: &Vector3<f32>) -> Vector3<f32> {
-        let noise = self.noise.noise(&(p*self.scale));
+        let noise = self.noise.noise(&(p * self.scale)) * 0.5 + 0.5;
         Vector3::new(noise, noise, noise)
     }
 }
