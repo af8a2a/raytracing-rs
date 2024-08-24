@@ -254,8 +254,7 @@ fn quads() {
     camera.render(&scene);
 }
 
-
-fn simple_light(){
+fn simple_light() {
     let mut scene = Scene::default();
     let pertext = NoiseTexture::new(4.0);
 
@@ -271,7 +270,8 @@ fn simple_light(){
         Material::Diffuse(Lambertian::new(Texture::Noise(pertext))),
     )));
 
-    let difflight= Material::DiffuseLight(DiffuseLight::new_with_color(Vector3::new(4.0, 4.0, 4.0)));
+    let difflight =
+        Material::DiffuseLight(DiffuseLight::new_with_color(Vector3::new(4.0, 4.0, 4.0)));
 
     scene.add(Hittable::Sphere(sphere::Sphere::new(
         Vector3::new(0.0, 7.0, 0.0),
@@ -301,10 +301,76 @@ fn simple_light(){
     camera.sample_per_pixel = 100;
     camera.depth = 50;
     camera.render(&scene);
-
 }
 
+fn cornell_box() {
+    let mut scene = Scene::default();
+
+    let red = Material::Diffuse(Lambertian::new_with_color(Vector3::new(0.65, 0.05, 0.05)));
+    let white = Material::Diffuse(Lambertian::new_with_color(Vector3::new(0.73, 0.73, 0.73)));
+    let green = Material::Diffuse(Lambertian::new_with_color(Vector3::new(0.12, 0.45, 0.15)));
+    let light =
+        Material::DiffuseLight(DiffuseLight::new_with_color(Vector3::new(15.0, 15.0, 15.0)));
+
+    scene.add(Hittable::Quad(Quad::new(
+        Vector3::new(555.0, 0.0, 0.0),
+        Vector3::new(0.0, 555.0, 0.0),
+        Vector3::new(0.0, 0.0, 555.0),
+        green.clone(),
+    )));
+
+    scene.add(Hittable::Quad(Quad::new(
+        Vector3::new(0.0, 0.0, 0.0),
+        Vector3::new(0.0, 555.0, 0.0),
+        Vector3::new(0.0, 0.0, 555.0),
+        red.clone(),
+    )));
+
+    scene.add(Hittable::Quad(Quad::new(
+        Vector3::new(343.0, 554.0, 332.0),
+        Vector3::new(-130.0, 0.0, 0.0),
+        Vector3::new(0.0, 0.0, -105.0),
+        light.clone(),
+    )));
+
+    scene.add(Hittable::Quad(Quad::new(
+        Vector3::new(0.0, 0.0, 0.0),
+        Vector3::new(555.0, 0.0, 0.0),
+        Vector3::new(0.0, 0.0, 555.0),
+        white.clone(),
+    )));
+
+    scene.add(Hittable::Quad(Quad::new(
+        Vector3::new(555.0, 555.0, 555.0),
+        Vector3::new(-555.0, 0.0, 0.0),
+        Vector3::new(0.0, 0.0, -555.0),
+        white.clone(),
+    )));
+
+    scene.add(Hittable::Quad(Quad::new(
+        Vector3::new(0.0, 0.0, 555.0),
+        Vector3::new(555.0, 0.0, 0.0),
+        Vector3::new(0.0, 555.0, 0.0),
+        white.clone(),
+    )));
+
+    let mut camera = Camera::default();
+    camera.aspect_ratio = 1.0;
+    camera.image_width = 600;
+
+    camera.look_from = Vector3::new(278.0, 278.0, -800.0);
+    camera.look_at = Vector3::new(278.0, 278.0, 0.0);
+    camera.vup = Vector3::new(0.0, 1.0, 0.0);
+    camera.background = Vector3::new(0.00, 0.00, 0.00);
+
+    camera.defocus_angle = 0.0;
+    camera.focus_dist = 10.0;
+    camera.vfov = 40.0;
+    camera.sample_per_pixel = 200;
+    camera.depth = 50;
+    camera.render(&scene);
+}
 
 fn main() {
-    simple_light();
+    cornell_box();
 }
