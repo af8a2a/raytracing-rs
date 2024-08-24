@@ -1,4 +1,4 @@
-use nalgebra::Vector3;
+use nalgebra::{Vector2, Vector3};
 
 use crate::{
     hit::{self, HitRecord},
@@ -11,6 +11,7 @@ pub enum Material {
     Diffuse(Lambertian),
     Metal(Metal),
     Dielectric(Dielectric),
+    DiffuseLight(DiffuseLight),
 }
 
 impl Material {
@@ -19,6 +20,15 @@ impl Material {
             Material::Diffuse(lambert) => lambert.scatter(ray, hit_record),
             Material::Metal(metal) => metal.scatter(ray, hit_record),
             Material::Dielectric(dielectric) => dielectric.scatter(ray, hit_record),
+            Material::DiffuseLight(light) => light.scatter(ray, hit_record),
+        }
+    }
+    pub fn emitted(&self, uv: &Vector2<f32>, p: &Vector3<f32>) -> Vector3<f32> {
+        match self {
+            Material::Diffuse(lambert) => lambert.emitted(uv, p),
+            Material::Metal(metal) => metal.emitted(uv, p),
+            Material::Dielectric(dielectric) => dielectric.emitted(uv, p),
+            Material::DiffuseLight(light) => light.emitted(uv, p),
         }
     }
 }
@@ -46,6 +56,10 @@ impl Lambertian {
         let attenuation = self.tex.value(&hit_record.uv, &hit_record.p).clone();
         Some((scattered, attenuation))
     }
+    pub fn emitted(&self, _uv: &Vector2<f32>, _p: &Vector3<f32>) -> Vector3<f32> {
+        Vector3::zeros()
+    }
+
 }
 #[derive(Debug, Clone, Copy)]
 pub struct Metal {
@@ -68,6 +82,10 @@ impl Metal {
             None
         }
     }
+    pub fn emitted(&self, _uv: &Vector2<f32>, _p: &Vector3<f32>) -> Vector3<f32> {
+        Vector3::zeros()
+    }
+
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -100,5 +118,33 @@ impl Dielectric {
 
         let scattered = Ray::new_with_time(hit_record.p, direction, ray.time);
         Some((scattered, attenuation))
+    }
+    pub fn emitted(&self, _uv: &Vector2<f32>, _p: &Vector3<f32>) -> Vector3<f32> {
+        Vector3::zeros()
+    }
+
+}
+#[derive(Debug, Clone)]
+
+pub struct DiffuseLight {
+    pub tex: Box<Texture>,
+}
+
+impl DiffuseLight {
+    pub fn new_with_color(emit: Vector3<f32>) -> Self {
+        Self {
+            tex: Box::new(Texture::Color(SolidColor::new(emit))),
+        }
+    }
+    pub fn new(tex: Texture) -> Self {
+        Self { tex: Box::new(tex) }
+    }
+
+    pub fn emitted(&self, uv: &Vector2<f32>, p: &Vector3<f32>) -> Vector3<f32> {
+        self.tex.value(uv, p)
+    }
+
+    pub fn scatter(&self, _ray: &Ray, _hit_record: &HitRecord) -> Option<(Ray, Vector3<f32>)> {
+        None
     }
 }

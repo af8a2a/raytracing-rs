@@ -10,7 +10,7 @@ use pbrt_rs::{
         sphere::{self, Sphere},
         Hittable,
     },
-    material::{Dielectric, Lambertian, Material, Metal},
+    material::{Dielectric, DiffuseLight, Lambertian, Material, Metal},
     scene::Scene,
     texture::{CheckerTexture, ImageTexture, NoiseTexture, SolidColor, Texture},
     util::{random_f32, random_vec, range_random_f32},
@@ -100,7 +100,6 @@ fn build_random_scene() {
     camera.sample_per_pixel = 250;
     camera.depth = 50;
     camera.render(&scene);
-
 }
 
 fn checkered_spheres() {
@@ -136,6 +135,7 @@ fn checkered_spheres() {
     camera.vfov = 20.0;
     camera.sample_per_pixel = 100;
     camera.depth = 50;
+    camera.background = Vector3::new(0.70, 0.80, 1.00);
     camera.render(&scene);
 }
 fn earth() {
@@ -156,6 +156,7 @@ fn earth() {
     camera.look_from = Vector3::new(0.0, 0.0, 12.0);
     camera.look_at = Vector3::new(0.0, 0.0, 0.0);
     camera.vup = Vector3::new(0.0, 1.0, 0.0);
+    camera.background = Vector3::new(0.70, 0.80, 1.00);
 
     camera.defocus_angle = 0.0;
     camera.focus_dist = 10.0;
@@ -188,6 +189,7 @@ fn perlin_sphere() {
     camera.look_from = Vector3::new(0.0, 0.0, 12.0);
     camera.look_at = Vector3::new(0.0, 0.0, 0.0);
     camera.vup = Vector3::new(0.0, 1.0, 0.0);
+    camera.background = Vector3::new(0.70, 0.80, 1.00);
 
     camera.defocus_angle = 0.0;
     camera.focus_dist = 10.0;
@@ -238,11 +240,12 @@ fn quads() {
     )));
 
     let mut camera = Camera::default();
-    camera.aspect_ratio=1.0;
-    camera.image_width=800;
+    camera.aspect_ratio = 1.0;
+    camera.image_width = 800;
     camera.look_from = Vector3::new(0.0, 0.0, 9.0);
     camera.look_at = Vector3::new(0.0, 0.0, 0.0);
     camera.vup = Vector3::new(0.0, 1.0, 0.0);
+    camera.background = Vector3::new(0.70, 0.80, 1.00);
 
     camera.defocus_angle = 0.0;
     camera.vfov = 80.0;
@@ -251,6 +254,51 @@ fn quads() {
     camera.render(&scene);
 }
 
+
+fn simple_light(){
+    let mut scene = Scene::default();
+    let pertext = NoiseTexture::new(4.0);
+
+    scene.add(Hittable::Sphere(sphere::Sphere::new(
+        Vector3::new(0.0, -1000.0, 0.0),
+        1000.0,
+        Material::Diffuse(Lambertian::new(Texture::Noise(pertext.clone()))),
+    )));
+
+    scene.add(Hittable::Sphere(sphere::Sphere::new(
+        Vector3::new(0.0, 2.0, 0.0),
+        2.0,
+        Material::Diffuse(Lambertian::new(Texture::Noise(pertext))),
+    )));
+
+    let difflight= Material::DiffuseLight(DiffuseLight::new_with_color(Vector3::new(4.0, 4.0, 4.0)));
+
+    scene.add(Hittable::Quad(Quad::new(
+        Vector3::new(3.0, 1.0, -2.0),
+        Vector3::new(2.0, 0.0, 0.0),
+        Vector3::new(0.0, 2.0, 0.0),
+        difflight,
+    )));
+
+    let mut camera = Camera::default();
+    camera.aspect_ratio = 16.0 / 9.0;
+    camera.image_width = 400;
+
+    camera.look_from = Vector3::new(26.0, 3.0, 6.0);
+    camera.look_at = Vector3::new(0.0, 2.0, 0.0);
+    camera.vup = Vector3::new(0.0, 1.0, 0.0);
+    camera.background = Vector3::new(0.00, 0.00, 0.00);
+
+    camera.defocus_angle = 0.0;
+    camera.focus_dist = 10.0;
+    camera.vfov = 20.0;
+    camera.sample_per_pixel = 100;
+    camera.depth = 50;
+    camera.render(&scene);
+
+}
+
+
 fn main() {
-    quads();
+    simple_light();
 }
