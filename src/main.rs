@@ -273,6 +273,12 @@ fn simple_light(){
 
     let difflight= Material::DiffuseLight(DiffuseLight::new_with_color(Vector3::new(4.0, 4.0, 4.0)));
 
+    scene.add(Hittable::Sphere(sphere::Sphere::new(
+        Vector3::new(0.0, 7.0, 0.0),
+        2.0,
+        difflight.clone(),
+    )));
+
     scene.add(Hittable::Quad(Quad::new(
         Vector3::new(3.0, 1.0, -2.0),
         Vector3::new(2.0, 0.0, 0.0),
