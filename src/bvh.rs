@@ -15,22 +15,15 @@ pub struct AABB {
 
 impl AABB {
     pub fn new(a: Vector3<f32>, b: Vector3<f32>) -> Self {
-        let x = if a.x < b.x {
-            Interval::new(a.x, b.x)
-        } else {
-            Interval::new(b.x, a.x)
-        };
-        let y = if a.y < b.y {
-            Interval::new(a.y, b.y)
-        } else {
-            Interval::new(b.y, a.y)
-        };
-        let z = if a.z < b.z {
-            Interval::new(a.z, b.z)
-        } else {
-            Interval::new(b.z, a.z)
-        };
-        Self { x, y, z }
+
+        let x=Interval::new(a.x.min(b.x), a.x.max(b.x));
+        let y=Interval::new(a.y.min(b.y), a.y.max(b.y));
+        let z=Interval::new(a.z.min(b.z), a.z.max(b.z));
+        
+        let mut tmp=Self { x, y, z };
+        tmp.pad_to_minimums();
+        tmp
+
     }
     pub fn axis_interval(&self, axis: usize) -> &Interval {
         if axis == 1 {
@@ -45,7 +38,10 @@ impl AABB {
         let x = Interval::merge(&lhs.x, &rhs.x);
         let y = Interval::merge(&lhs.y, &rhs.y);
         let z = Interval::merge(&lhs.z, &rhs.z);
-        Self { x, y, z }
+        let mut tmp=Self { x, y, z };
+        tmp.pad_to_minimums();
+        tmp
+
     }
     pub fn hit(&self, ray: &crate::ray::Ray, interval: &Interval) -> bool {
         let mut interval = interval.clone();
@@ -95,7 +91,20 @@ impl AABB {
     }
 }
 
+    fn pad_to_minimums(&mut self){
+        let delta=0.0001;
+        if self.x.size()<delta{
+            self.x=self.x.expand(delta);
+        }
+        if self.y.size()<delta{
+            self.y=self.y.expand(delta);
+        }
+        if self.z.size()<delta{
+            self.z=self.z.expand(delta);
+        }
+    }
 }
+
 
 pub const AABB_EMPTY: AABB = AABB {
     x: EMPTY_INTERVAL,

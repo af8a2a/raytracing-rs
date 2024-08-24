@@ -51,95 +51,133 @@ pub struct Camera {
     v: Vector3<f32>,
     w: Vector3<f32>,
 }
-
-impl Camera {
-    pub fn new(aspect_ratio: f32, image_width: u32) -> Camera {
-        let vfov = 90.0;
-        let look_from = Vector3::new(0.0, 0.0, 0.0);
-        let look_at = Vector3::new(0.0, 0.0, -1.0);
-        let vup = Vector3::new(0.0, 1.0, 0.0);
-
-        let image_height = ((image_width as f32 / aspect_ratio) as u32).max(1);
-        let center = look_from.clone();
-
-        // let focal_length = (look_from - look_at).norm();
-        let theta = f32::to_radians(vfov);
-        let h = f32::tan(theta / 2.0);
-
-        let focus_dist = 10.0;
-        let defocus_angle = 0.0;
-
-        let viewport_height = 2.0 * h * focus_dist;
-        let viewport_width = viewport_height * image_width as f32 / image_height as f32;
-
-        let w = (look_from - look_at).normalize();
-        let u = vup.cross(&w).normalize();
-        let v = w.cross(&u);
-
-        let viewport_u = viewport_width * u;
-        let viewport_v = viewport_height * -v;
-
-        let pixel_delta_u = viewport_u / image_width as f32;
-        let pixel_delta_v = viewport_v / image_height as f32;
-        let viewport_upper_left = center - (focus_dist * w) - viewport_u / 2.0 - viewport_v / 2.0;
-        let pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
-
-        let defocus_radius = focus_dist * f32::tan(f32::to_radians(defocus_angle / 2.0));
-        let defocus_disk_u = u * defocus_radius;
-        let defocus_disk_v = v * defocus_radius;
-
-        Camera {
-            aspect_ratio,
-            image_width,
-            image_height,
-            center,
-            pixel00_loc,
-            pixel_delta_u,
-            pixel_delta_v,
-            sample_per_pixel: 100,
-            depth: 50,
-            vfov,
-            look_from,
-            look_at,
-            vup,
-            u,
-            v,
-            w,
-            defocus_angle,
-            focus_dist,
-            defocus_disk_u,
-            defocus_disk_v,
+impl Default for Camera {
+    fn default() -> Self {
+        Self {
+            aspect_ratio: 1.0,
+            image_width: 100,
+            sample_per_pixel: 10,
+            depth: 10,
+            vfov: 90.0,
+            look_from: Vector3::new(0.0, 0.0, -1.0),
+            look_at: Vector3::new(0.0, 0.0, 0.0),
+            vup: Vector3::new(0.0, 1.0, 0.0),
+            defocus_angle: 0.0,
+            focus_dist: 10.0,
+            image_height: 0,
+            center: Vector3::zeros(),
+            pixel00_loc: Vector3::zeros(),
+            pixel_delta_u: Vector3::zeros(),
+            pixel_delta_v: Vector3::zeros(),
+            u: Vector3::zeros(),
+            v: Vector3::zeros(),
+            w: Vector3::zeros(),
+            defocus_disk_u: Vector3::zeros(),
+            defocus_disk_v: Vector3::zeros(),
         }
     }
-    pub fn reinit(&mut self) {
-        self.image_height = ((self.image_width as f32 / self.aspect_ratio) as u32).max(1);
-        self.center = self.look_from.clone();
-        // let focal_length = (self.look_from - self.look_at).norm();
-        let theta = f32::to_radians(self.vfov);
-        let h = f32::tan(theta / 2.0);
+}
 
+impl Camera {
+    // pub fn new(aspect_ratio: f32, image_width: u32) -> Camera {
+    //     let vfov = 90.0;
+    //     let look_from = Vector3::new(0.0, 0.0, 0.0);
+    //     let look_at = Vector3::new(0.0, 0.0, -1.0);
+    //     let vup = Vector3::new(0.0, 1.0, 0.0);
+
+    //     let image_height = ((image_width as f32 / aspect_ratio) as u32).max(1);
+    //     let center = look_from.clone();
+
+    //     // let focal_length = (look_from - look_at).norm();
+    //     let theta = f32::to_radians(vfov);
+    //     let h = f32::tan(theta / 2.0);
+
+    //     let focus_dist = 10.0;
+    //     let defocus_angle = 0.0;
+
+    //     let viewport_height = 2.0 * h * focus_dist;
+    //     let viewport_width = viewport_height * image_width as f32 / image_height as f32;
+
+    //     let w = (look_from - look_at).normalize();
+    //     let u = vup.cross(&w).normalize();
+    //     let v = w.cross(&u);
+
+    //     let viewport_u = viewport_width * u;
+    //     let viewport_v = viewport_height * -v;
+
+    //     let pixel_delta_u = viewport_u / image_width as f32;
+    //     let pixel_delta_v = viewport_v / image_height as f32;
+    //     let viewport_upper_left = center - (focus_dist * w) - viewport_u / 2.0 - viewport_v / 2.0;
+    //     let pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
+
+    //     let defocus_radius = focus_dist * f32::tan(f32::to_radians(defocus_angle / 2.0));
+    //     let defocus_disk_u = u * defocus_radius;
+    //     let defocus_disk_v = v * defocus_radius;
+
+    //     Camera {
+    //         aspect_ratio,
+    //         image_width,
+    //         image_height,
+    //         center,
+    //         pixel00_loc,
+    //         pixel_delta_u,
+    //         pixel_delta_v,
+    //         sample_per_pixel: 100,
+    //         depth: 50,
+    //         vfov,
+    //         look_from,
+    //         look_at,
+    //         vup,
+    //         u,
+    //         v,
+    //         w,
+    //         defocus_angle,
+    //         focus_dist,
+    //         defocus_disk_u,
+    //         defocus_disk_v,
+    //     }
+    // }
+    pub fn initialize(&mut self) {
+        self.image_height = (self.image_width as f32 / self.aspect_ratio) as u32;
+        self.image_height = if self.image_height < 1 {
+            1
+        } else {
+            self.image_height
+        };
+
+        self.center = self.look_from;
+
+        let theta = self.vfov.to_radians();
+        let h = (theta / 2.0).tan();
         let viewport_height = 2.0 * h * self.focus_dist;
-        let viewport_width = viewport_height * self.image_width as f32 / self.image_height as f32;
+        let viewport_width = viewport_height * (self.image_width as f32 / self.image_height as f32);
 
         self.w = (self.look_from - self.look_at).normalize();
-        self.u = self.vup.cross(&self.w).normalize();
+        self.u = (self.vup.cross(&self.w)).normalize();
         self.v = self.w.cross(&self.u);
 
-        let viewport_u = viewport_width * self.u;
-        let viewport_v = viewport_height * -self.v;
+        // 计算水平和垂直视口边缘上的向量。
+        let viewport_u = self.u * viewport_width;
+        let viewport_v = -self.v * viewport_height;
 
+        // 计算从像素到像素的水平和垂直增量向量。
         self.pixel_delta_u = viewport_u / self.image_width as f32;
         self.pixel_delta_v = viewport_v / self.image_height as f32;
+
+        // 计算左上角像素的位置。
         let viewport_upper_left =
-            self.center - (self.focus_dist * self.w) - viewport_u / 2.0 - viewport_v / 2.0;
+            self.center - (self.focus_dist * self.w) - (0.5 * viewport_u) - (0.5 * viewport_v);
         self.pixel00_loc = viewport_upper_left + 0.5 * (self.pixel_delta_u + self.pixel_delta_v);
 
-        let defocus_radius = self.focus_dist * f32::tan(f32::to_radians(self.defocus_angle / 2.0));
+        // 计算相机失焦盘的基向量。
+        let defocus_radius = self.focus_dist * ((self.defocus_angle / 2.0).to_radians()).tan();
         self.defocus_disk_u = self.u * defocus_radius;
         self.defocus_disk_v = self.v * defocus_radius;
     }
 
-    pub fn render(&self, scene: &Scene) {
+    pub fn render(&mut self, scene: &Scene) {
+        self.initialize();
+
         let width = self.image_width;
         let height = self.image_height;
 
@@ -154,16 +192,6 @@ impl Camera {
             *pixel = color_to_rgb(color / self.sample_per_pixel as f32);
         });
 
-        // for j in 0..height {
-        //     for i in 0..width as u32 {
-        //         let mut color = Vector3::new(0.0, 0.0, 0.0);
-        //         for _ in 0..self.sample_per_pixel {
-        //             let ray = self.get_ray(i, j);
-        //             color += Self::ray_color(&ray, &scene, self.depth);
-        //         }
-        //         image.put_pixel(i, j, color_to_rgb(color / self.sample_per_pixel as f32));
-        //     }
-        // }
         image.save("image.png").expect("Failed to save image");
     }
 
@@ -179,14 +207,14 @@ impl Camera {
         };
         let ray_dir = pixel_sample - ray_origin;
         let ray_time = random_f32();
-        Ray::new_with_time(ray_origin, ray_dir.normalize(), ray_time)
+        Ray::new_with_time(ray_origin, ray_dir, ray_time)
     }
 
     fn ray_color(ray: &Ray, scene: &Scene, depth: i32) -> Vector3<f32> {
         if depth <= 0 {
             return Vector3::new(0.0, 0.0, 0.0);
         }
-        let hit = scene.hit(ray, &Interval::new(0.00000001, f32::MAX));
+        let hit = scene.hit(ray, &Interval::new(0.0001, f32::MAX));
         match hit {
             Some(record) => {
                 if let Some((scattered, attenuation)) = record.material.scatter(ray, &record) {

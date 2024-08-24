@@ -10,7 +10,6 @@ pub struct Sphere {
     pub center: Vector3<f32>,
     pub radius: f32,
     pub material: Material,
-
     pub motion: Option<Vector3<f32>>,
     pub bbox: AABB,
 }
@@ -55,9 +54,6 @@ impl Sphere {
         Vector2::new(u, v)
     }
     pub fn hit(&self, ray: &crate::ray::Ray, interval: &Interval) -> Option<HitRecord> {
-        // if !self.bbox.hit(ray, interval){
-        //     return None;
-        // }
         let center = match self.motion {
             Some(_) => self.sphere_center(ray.time),
             None => self.center,
@@ -92,7 +88,7 @@ impl Sphere {
             material: &self.material,
             uv,
         };
-        hit_record.set_face_normal(ray, outward_normal);
+        hit_record.set_face_normal(ray, &outward_normal);
         Some(hit_record)
     }
 

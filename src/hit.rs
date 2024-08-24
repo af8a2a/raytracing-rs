@@ -1,4 +1,5 @@
 pub mod sphere;
+pub mod quad;
 use nalgebra::{Vector2, Vector3};
 
 use crate::{bvh::{BVHNode, AABB}, material::Material, ray::Ray, util::Interval};
@@ -14,10 +15,10 @@ pub struct HitRecord<'a> {
 
 
 impl HitRecord<'_> {
-    pub fn set_face_normal(&mut self, ray: &Ray, outward_normal: Vector3<f32>) {
+    pub fn set_face_normal(&mut self, ray: &Ray, outward_normal: &Vector3<f32>) {
         self.front_face = ray.direction.dot(&outward_normal) < 0.0;
         self.normal = if self.front_face {
-            outward_normal
+            *outward_normal
         } else {
             -outward_normal
         };
@@ -27,6 +28,7 @@ impl HitRecord<'_> {
 pub enum Hittable {
     Sphere(sphere::Sphere),
     BVHNode(BVHNode),
+    Quad(quad::Quad),
 }
 
 impl Hittable {
@@ -34,12 +36,14 @@ impl Hittable {
         match self {
             Hittable::Sphere(sphere) => sphere.hit(ray, interval),
             Hittable::BVHNode(node) => node.hit(ray, interval),
+            Hittable::Quad(quad) => quad.hit(ray, interval),
         }
     }
     pub fn bbox(&self)->&AABB{
         match self {
             Hittable::Sphere(sphere) => &sphere.bbox,
             Hittable::BVHNode(node) => &node.bbox,
+            Hittable::Quad(quad) => &quad.aabb,
         }
     }
 }

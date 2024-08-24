@@ -6,6 +6,7 @@ use pbrt_rs::{
     bvh::BVHNode,
     camera::Camera,
     hit::{
+        quad::Quad,
         sphere::{self, Sphere},
         Hittable,
     },
@@ -15,7 +16,7 @@ use pbrt_rs::{
     util::{random_f32, random_vec, range_random_f32},
 };
 
-fn build_random_scene() -> Scene {
+fn build_random_scene() {
     let checker = Texture::CheckerTexture(CheckerTexture::new_with_color(
         &Vector3::new(0.2, 0.3, 0.1),
         &Vector3::new(0.9, 0.9, 0.9),
@@ -26,8 +27,8 @@ fn build_random_scene() -> Scene {
     let mut scene = Scene::default();
 
     scene.add(Hittable::Sphere(sphere::Sphere::new(
-        Vector3::new(0.0, -100.0, 0.0),
-        100.0,
+        Vector3::new(0.0, -1000.0, 0.0),
+        1000.0,
         material_ground,
     )));
     for i in -11..11 {
@@ -86,10 +87,23 @@ fn build_random_scene() -> Scene {
     let scene = Scene::new_with_bvh(pbrt_rs::hit::Hittable::BVHNode(BVHNode::new_with_scene(
         &scene,
     )));
-    scene
+    let mut camera = Camera::default();
+    camera.aspect_ratio = 16.0 / 9.0;
+    camera.image_width = 800;
+
+    camera.look_from = Vector3::new(13.0, 2.0, 3.0);
+    camera.look_at = Vector3::new(0.0, 0.0, -1.0);
+    camera.vup = Vector3::new(0.0, 1.0, 0.0);
+    camera.defocus_angle = 0.0;
+    camera.focus_dist = 10.0;
+    camera.vfov = 20.0;
+    camera.sample_per_pixel = 250;
+    camera.depth = 50;
+    camera.render(&scene);
+
 }
 
-fn checkered_spheres() -> Scene {
+fn checkered_spheres() {
     let mut scene = Scene::default();
     let checker = Texture::CheckerTexture(CheckerTexture::new_with_color(
         &Vector3::new(0.2, 0.3, 0.1),
@@ -109,7 +123,20 @@ fn checkered_spheres() -> Scene {
     let scene = Scene::new_with_bvh(pbrt_rs::hit::Hittable::BVHNode(BVHNode::new_with_scene(
         &scene,
     )));
-    scene
+    let mut camera = Camera::default();
+    camera.aspect_ratio = 16.0 / 9.0;
+    camera.image_width = 400;
+
+    camera.look_from = Vector3::new(0.0, 0.0, 12.0);
+    camera.look_at = Vector3::new(0.0, 0.0, 0.0);
+    camera.vup = Vector3::new(0.0, 1.0, 0.0);
+
+    camera.defocus_angle = 0.0;
+    camera.focus_dist = 10.0;
+    camera.vfov = 20.0;
+    camera.sample_per_pixel = 100;
+    camera.depth = 50;
+    camera.render(&scene);
 }
 fn earth() {
     let image = image::open("assets/earthmap.jpg")
@@ -122,7 +149,10 @@ fn earth() {
     let mut scene = Scene::default();
     scene.add(Hittable::Sphere(globe));
 
-    let mut camera = Camera::new(16.0 / 9.0, 400);
+    let mut camera = Camera::default();
+    camera.aspect_ratio = 16.0 / 9.0;
+    camera.image_width = 400;
+
     camera.look_from = Vector3::new(0.0, 0.0, 12.0);
     camera.look_at = Vector3::new(0.0, 0.0, 0.0);
     camera.vup = Vector3::new(0.0, 1.0, 0.0);
@@ -132,7 +162,6 @@ fn earth() {
     camera.vfov = 20.0;
     camera.sample_per_pixel = 100;
     camera.depth = 50;
-    camera.reinit();
     camera.render(&scene);
 }
 
@@ -152,33 +181,74 @@ fn perlin_sphere() {
         Material::Diffuse(Lambertian::new(Texture::Noise(pertext))),
     )));
 
-    let mut camera = Camera::new(16.0 / 9.0, 400);
-    camera.look_from = Vector3::new(13.0, 2.0, 3.0);
-    camera.look_at = Vector3::new(0.0, 0.0, -1.0);
+    let mut camera = Camera::default();
+    camera.aspect_ratio = 16.0 / 9.0;
+    camera.image_width = 400;
+
+    camera.look_from = Vector3::new(0.0, 0.0, 12.0);
+    camera.look_at = Vector3::new(0.0, 0.0, 0.0);
     camera.vup = Vector3::new(0.0, 1.0, 0.0);
+
     camera.defocus_angle = 0.0;
     camera.focus_dist = 10.0;
     camera.vfov = 20.0;
+    camera.sample_per_pixel = 100;
+    camera.depth = 50;
+    camera.render(&scene);
+}
+
+fn quads() {
+    let mut scene = Scene::default();
+    let left_red = Material::Diffuse(Lambertian::new_with_color(Vector3::new(1.0, 0.2, 0.2)));
+    let back_green = Material::Diffuse(Lambertian::new_with_color(Vector3::new(0.2, 1.0, 0.2)));
+    let right_blue = Material::Diffuse(Lambertian::new_with_color(Vector3::new(0.2, 0.2, 1.0)));
+    let upper_orange = Material::Diffuse(Lambertian::new_with_color(Vector3::new(1.0, 0.5, 0.0)));
+    let lower_teal = Material::Diffuse(Lambertian::new_with_color(Vector3::new(0.2, 0.8, 0.8)));
+
+    scene.add(Hittable::Quad(Quad::new(
+        Vector3::new(-3.0, -2.0, 5.0),
+        Vector3::new(0.0, 0.0, -4.0),
+        Vector3::new(0.0, 4.0, 0.0),
+        left_red,
+    )));
+
+    scene.add(Hittable::Quad(Quad::new(
+        Vector3::new(-2.0, -2.0, 0.0),
+        Vector3::new(4.0, 0.0, 0.0),
+        Vector3::new(0.0, 4.0, 0.0),
+        back_green,
+    )));
+    scene.add(Hittable::Quad(Quad::new(
+        Vector3::new(3.0, -2.0, 1.0),
+        Vector3::new(0.0, 0.0, 4.0),
+        Vector3::new(0.0, 4.0, 0.0),
+        right_blue,
+    )));
+    scene.add(Hittable::Quad(Quad::new(
+        Vector3::new(-2.0, 3.0, 1.0),
+        Vector3::new(4.0, 0.0, 0.0),
+        Vector3::new(0.0, 0.0, 4.0),
+        upper_orange,
+    )));
+    scene.add(Hittable::Quad(Quad::new(
+        Vector3::new(-2.0, -3.0, 5.0),
+        Vector3::new(4.0, 0.0, 0.0),
+        Vector3::new(0.0, 0.0, -4.0),
+        lower_teal,
+    )));
+
+    let mut camera = Camera::default();
+    camera.look_from = Vector3::new(0.0, 0.0, 9.0);
+    camera.look_at = Vector3::new(0.0, 0.0, 0.0);
+    camera.vup = Vector3::new(0.0, 1.0, 0.0);
+
+    camera.defocus_angle = 0.0;
+    camera.vfov = 80.0;
     camera.sample_per_pixel = 160;
     camera.depth = 50;
-    camera.reinit();
     camera.render(&scene);
 }
 
 fn main() {
-    // println!("{:#?}",scene);
-
-    // let scene = build_random_scene();
-    // let mut camera = Camera::new(16.0 / 9.0, 400);
-    // camera.look_from = Vector3::new(13.0, 2.0, 3.0);
-    // camera.look_at = Vector3::new(0.0, 0.0, -1.0);
-    // camera.vup = Vector3::new(0.0, 1.0, 0.0);
-    // camera.defocus_angle = 0.0;
-    // camera.focus_dist = 10.0;
-    // camera.vfov = 20.0;
-    // camera.sample_per_pixel = 160;
-    // camera.depth = 50;
-    // camera.reinit();
-    // camera.render(&scene);
-    perlin_sphere();
+    quads();
 }
