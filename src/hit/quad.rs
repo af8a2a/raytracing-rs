@@ -24,10 +24,10 @@ impl Quad {
         let d = normal.dot(&q);
         // let w = Vector3::new(-0.0625, 0.0, 0.0);
         let w = n / n.dot(&n);
-        assert_eq!(n / n.dot(&n), w);
+        // assert_eq!(n / n.dot(&n), w);
         let aabb = AABB::new(q, q + u + v);
 
-        let x = Self {
+        Self {
             q,
             u,
             v,
@@ -36,9 +36,7 @@ impl Quad {
             normal,
             d,
             w,
-        };
-        println!("{:#?}", x);
-        x
+        }
     }
 
     pub fn hit(&self, ray: &crate::ray::Ray, interval: &Interval) -> Option<HitRecord> {

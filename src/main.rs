@@ -238,6 +238,8 @@ fn quads() {
     )));
 
     let mut camera = Camera::default();
+    camera.aspect_ratio=1.0;
+    camera.image_width=800;
     camera.look_from = Vector3::new(0.0, 0.0, 9.0);
     camera.look_at = Vector3::new(0.0, 0.0, 0.0);
     camera.vup = Vector3::new(0.0, 1.0, 0.0);
