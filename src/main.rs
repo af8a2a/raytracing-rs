@@ -6,7 +6,11 @@ use pbrt_rs::{
     bvh::BVHNode,
     camera::Camera,
     hit::{
-        quad::{box_scene, Quad}, sphere::{self, Sphere}, translate::{RotateY, Translate}, Hittable
+        medium::ConstMedium,
+        quad::{box_scene, Quad},
+        sphere::{self, Sphere},
+        translate::{RotateY, Translate},
+        Hittable,
     },
     material::{Dielectric, DiffuseLight, Lambertian, Material, Metal},
     scene::Scene,
@@ -352,25 +356,24 @@ fn cornell_box() {
         white.clone(),
     )));
 
-    let box1= box_scene(
+    let box1 = box_scene(
         Vector3::new(0.0, 0.0, 0.0),
         Vector3::new(165.0, 330.0, 165.0),
         white.clone(),
     );
-    let box1=RotateY::new(Hittable::PrefabScene(box1), 15.0);
-    let box1=Translate::new(Hittable::Rotate(box1), Vector3::new(265.0, 0.0, 295.0));
+    let box1 = RotateY::new(Hittable::PrefabScene(box1), 15.0);
+    let box1 = Translate::new(Hittable::Rotate(box1), Vector3::new(265.0, 0.0, 295.0));
 
     scene.add(Hittable::Translate(box1));
 
-    let box2= box_scene(
-        Vector3::new(0.0, 0.0, 0.0), 
+    let box2 = box_scene(
+        Vector3::new(0.0, 0.0, 0.0),
         Vector3::new(165.0, 165.0, 165.0),
         white.clone(),
     );
-    let box2=RotateY::new(Hittable::PrefabScene(box2), -18.0);
-    let box2=Translate::new(Hittable::Rotate(box2), Vector3::new(130.0, 0.0, 65.0));
+    let box2 = RotateY::new(Hittable::PrefabScene(box2), -18.0);
+    let box2 = Translate::new(Hittable::Rotate(box2), Vector3::new(130.0, 0.0, 65.0));
     scene.add(Hittable::Translate(box2));
-
 
     // scene.merge(box_scene(
     //     Vector3::new(130.0, 0.0, 65.0),
@@ -400,6 +403,95 @@ fn cornell_box() {
     camera.render(&scene);
 }
 
+fn cornell_smoke() {
+    let mut scene = Scene::default();
+
+    let red = Material::Diffuse(Lambertian::new_with_color(Vector3::new(0.65, 0.05, 0.05)));
+    let white = Material::Diffuse(Lambertian::new_with_color(Vector3::new(0.73, 0.73, 0.73)));
+    let green = Material::Diffuse(Lambertian::new_with_color(Vector3::new(0.12, 0.45, 0.15)));
+    let light =
+        Material::DiffuseLight(DiffuseLight::new_with_color(Vector3::new(14.0, 14.0,14.0)));
+
+    scene.add(Hittable::Quad(Quad::new(
+        Vector3::new(555.0, 0.0, 0.0),
+        Vector3::new(0.0, 555.0, 0.0),
+        Vector3::new(0.0, 0.0, 555.0),
+        green.clone(),
+    )));
+
+    scene.add(Hittable::Quad(Quad::new(
+        Vector3::new(0.0, 0.0, 0.0),
+        Vector3::new(0.0, 555.0, 0.0),
+        Vector3::new(0.0, 0.0, 555.0),
+        red.clone(),
+    )));
+
+    scene.add(Hittable::Quad(Quad::new(
+        Vector3::new(343.0, 554.0, 332.0),
+        Vector3::new(-130.0, 0.0, 0.0),
+        Vector3::new(0.0, 0.0, -105.0),
+        light.clone(),
+    )));
+
+    scene.add(Hittable::Quad(Quad::new(
+        Vector3::new(0.0, 0.0, 0.0),
+        Vector3::new(555.0, 0.0, 0.0),
+        Vector3::new(0.0, 0.0, 555.0),
+        white.clone(),
+    )));
+
+    scene.add(Hittable::Quad(Quad::new(
+        Vector3::new(555.0, 555.0, 555.0),
+        Vector3::new(-555.0, 0.0, 0.0),
+        Vector3::new(0.0, 0.0, -555.0),
+        white.clone(),
+    )));
+
+    scene.add(Hittable::Quad(Quad::new(
+        Vector3::new(0.0, 0.0, 555.0),
+        Vector3::new(555.0, 0.0, 0.0),
+        Vector3::new(0.0, 555.0, 0.0),
+        white.clone(),
+    )));
+
+    let box1 = box_scene(
+        Vector3::new(0.0, 0.0, 0.0),
+        Vector3::new(165.0, 330.0, 165.0),
+        white.clone(),
+    );
+    let box1 = RotateY::new(Hittable::PrefabScene(box1), 15.0);
+    let box1 = Translate::new(Hittable::Rotate(box1), Vector3::new(265.0, 0.0, 295.0));
+    let box1 = ConstMedium::new_with_color(Hittable::Translate(box1), 0.01, Vector3::new(0.0, 0.0, 0.0));
+    scene.add(Hittable::ConstantMedium(box1));
+
+    let box2 = box_scene(
+        Vector3::new(0.0, 0.0, 0.0),
+        Vector3::new(165.0, 165.0, 165.0),
+        white.clone(),
+    );
+    let box2 = RotateY::new(Hittable::PrefabScene(box2), -18.0);
+    let box2 = Translate::new(Hittable::Rotate(box2), Vector3::new(130.0, 0.0, 65.0));
+    let box2 = ConstMedium::new_with_color(Hittable::Translate(box2), 0.01, Vector3::new(1.0, 1.0, 1.0));
+    scene.add(Hittable::ConstantMedium(box2));
+    let bvh= BVHNode::new_with_scene(&scene);
+    scene=Scene::new_with_bvh(Hittable::BVHNode(bvh));
+    let mut camera = Camera::default();
+    camera.aspect_ratio = 1.0;
+    camera.image_width = 600;
+
+    camera.look_from = Vector3::new(278.0, 278.0, -800.0);
+    camera.look_at = Vector3::new(278.0, 278.0, 0.0);
+    camera.vup = Vector3::new(0.0, 1.0, 0.0);
+    camera.background = Vector3::new(0.00, 0.00, 0.00);
+
+    camera.defocus_angle = 0.0;
+    camera.focus_dist = 10.0;
+    camera.vfov = 40.0;
+    camera.sample_per_pixel = 200;
+    camera.depth = 50;
+    camera.render(&scene);
+}
+
 fn main() {
-    cornell_box();
+    cornell_smoke();
 }

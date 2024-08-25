@@ -5,7 +5,7 @@ use rayon::iter::ParallelIterator;
 use crate::{
     ray::Ray,
     scene::Scene,
-    util::{random_f32, random_in_unit_sphere, sample_square, Interval},
+    util::{random_f32, random_unit_vector, sample_square, Interval},
 };
 
 fn linear_to_gamma(color: f32) -> f32 {
@@ -180,7 +180,7 @@ impl Camera {
     }
 
     fn defocus_disk_sample(&self) -> Vector3<f32> {
-        let p = random_in_unit_sphere();
+        let p = random_unit_vector();
         self.center + self.defocus_disk_u * p.x + self.defocus_disk_v * p.y
     }
 }

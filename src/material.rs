@@ -4,7 +4,7 @@ use crate::{
     hit::{self, HitRecord},
     ray::Ray,
     texture::{SolidColor, Texture},
-    util::{near_zero, random_f32, random_in_unit_sphere, reflect, reflectance, refract},
+    util::{near_zero, random_f32, random_unit_vector, reflect, reflectance, refract},
 };
 #[derive(Debug, Clone)]
 pub enum Material {
@@ -47,7 +47,7 @@ impl Lambertian {
         Self { tex: Box::new(tex) }
     }
     pub fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<(Ray, Vector3<f32>)> {
-        let mut scatter_direction = hit_record.normal + random_in_unit_sphere();
+        let mut scatter_direction = hit_record.normal + random_unit_vector();
         if near_zero(&scatter_direction) {
             scatter_direction = hit_record.normal;
         }
@@ -72,7 +72,7 @@ impl Metal {
         Self { albedo, fuzz }
     }
     pub fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<(Ray, Vector3<f32>)> {
-        let reflected = random_in_unit_sphere() * self.fuzz
+        let reflected = random_unit_vector() * self.fuzz
             + reflect(&ray.direction, &hit_record.normal).normalize();
         let scattered = Ray::new_with_time(hit_record.p, reflected, ray.time);
         let attenuation = self.albedo.clone();

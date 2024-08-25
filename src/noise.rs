@@ -2,7 +2,7 @@ use std::mem::swap;
 
 use nalgebra::Vector3;
 
-use crate::util::{random_f32, random_in_unit_sphere, random_int, random_vec_range};
+use crate::util::{random_f32, random_unit_vector, random_int, random_vec_range};
 
 pub const POINT_COUNT: usize = 256;
 #[derive(Debug, Clone)]

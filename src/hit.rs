@@ -1,6 +1,7 @@
 pub mod quad;
 pub mod sphere;
 pub mod translate;
+pub mod medium;
 use nalgebra::{Vector2, Vector3};
 
 use crate::{aabb::AABB, bvh::BVHNode, material::Material, ray::Ray, scene::Scene, util::Interval};
@@ -32,6 +33,7 @@ pub enum Hittable {
     Translate(translate::Translate),
     Rotate(translate::RotateY),
     PrefabScene(Scene),
+    ConstantMedium(medium::ConstMedium),
 }
 
 impl Hittable {
@@ -43,6 +45,7 @@ impl Hittable {
             Hittable::Translate(t) => t.hit(ray, interval),
             Hittable::Rotate(r) => r.hit(ray, interval),
             Hittable::PrefabScene(scene) => scene.hit(ray, interval),
+            Hittable::ConstantMedium(medium) =>medium.hit(ray, interval),
         }
     }
     pub fn bbox(&self) -> &AABB {
@@ -53,6 +56,7 @@ impl Hittable {
             Hittable::Translate(t) => &t.bbox,
             Hittable::Rotate(r) => &r.bbox,
             Hittable::PrefabScene(scene) => &scene.bbox,
+            Hittable::ConstantMedium(medium) => medium.boundary.bbox(),
         }
     }
 }

@@ -1,13 +1,14 @@
 use image::RgbImage;
 use nalgebra::{Vector2, Vector3};
 
-use crate::noise::Perlin;
+use crate::{hit::HitRecord, noise::Perlin, ray::Ray, util::random_unit_vector};
 #[derive(Debug, Clone)]
 pub enum Texture {
     Color(SolidColor),
     CheckerTexture(CheckerTexture),
     ImageTexture(ImageTexture),
     Noise(NoiseTexture),
+    Isotropic(Isotropic),
 }
 
 impl Texture {
@@ -17,6 +18,7 @@ impl Texture {
             Texture::CheckerTexture(tex) => tex.value(uv, p),
             Texture::ImageTexture(tex) => tex.value(uv, p),
             Texture::Noise(tex) => tex.value(uv, p),
+            Texture::Isotropic(isotropic) => isotropic.tex.value(uv, p),
         }
     }
 }
@@ -117,5 +119,27 @@ impl NoiseTexture {
         // let noise = self.noise.noise(&(p * self.scale)) * 0.5 + 0.5;
         let noise: f32 = 0.5 * (1.0 + (self.scale * p.z + 10.0 * self.noise.turb(p, 7)).sin());
         Vector3::new(noise, noise, noise)
+    }
+}
+#[derive(Debug, Clone)]
+
+pub struct Isotropic {
+    tex: Box<Texture>,
+}
+
+impl Isotropic {
+    pub fn new(tex: Texture) -> Self {
+        Self { tex: Box::new(tex) }
+    }
+    pub  fn new_with_color(albedo: Vector3<f32>) -> Self {
+        Self {
+            tex: Box::new(Texture::Color(SolidColor::new(albedo))),
+        }
+    }
+    pub fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<(Ray, Vector3<f32>)> {
+        let scattered= Ray::new_with_time(hit_record.p, random_unit_vector(), ray.time);
+        let attenuation = self.tex.value(&hit_record.uv, &hit_record.p).clone();
+        Some((scattered,attenuation))
+    
     }
 }
