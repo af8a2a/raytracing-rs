@@ -1,6 +1,6 @@
 use nalgebra::{Vector2, Vector3};
 
-use crate::{bvh::AABB, material::Material, util::Interval};
+use crate::{bvh::AABB, material::Material, scene::Scene, util::Interval};
 
 use super::HitRecord;
 #[derive(Debug, Clone)]
@@ -86,4 +86,56 @@ impl Quad {
         rec.uv = Vector2::new(a, b);
         true
     }
+}
+
+pub fn box_scene(a: Vector3<f32>, b: Vector3<f32>, mat: Material) -> Scene {
+    let mut sides = Scene::default();
+
+    let min = Vector3::new(a.x.min(b.x), a.y.min(b.y), a.z.min(b.z));
+    let max = Vector3::new(a.x.max(b.x), a.y.max(b.y), a.z.max(b.z));
+
+    let dx = Vector3::new(max.x - min.x, 0.0, 0.0);
+    let dy = Vector3::new(0.0, max.y - min.y, 0.0);
+    let dz = Vector3::new(0.0, 0.0, max.z - min.z);
+
+    sides.add(crate::hit::Hittable::Quad(Quad::new(
+        Vector3::new(min.x, min.y, max.z),
+        dx,
+        dy,
+        mat.clone(),
+    )));
+
+    sides.add(crate::hit::Hittable::Quad(Quad::new(
+        Vector3::new(max.x, min.y, max.z),
+        -dz,
+        dy,
+        mat.clone(),
+    )));
+    sides.add(crate::hit::Hittable::Quad(Quad::new(
+        Vector3::new(max.x, min.y, min.z),
+        -dx,
+        dy,
+        mat.clone(),
+    )));
+
+    sides.add(crate::hit::Hittable::Quad(Quad::new(
+        Vector3::new(min.x, min.y, min.z),
+        dz,
+        dy,
+        mat.clone(),
+    )));
+    sides.add(crate::hit::Hittable::Quad(Quad::new(
+        Vector3::new(min.x, max.y, max.z),
+        dx,
+        -dz,
+        mat.clone(),
+    )));
+    sides.add(crate::hit::Hittable::Quad(Quad::new(
+        Vector3::new(min.x, min.y, min.z),
+        dx,
+        dz,
+        mat.clone(),
+    )));
+
+    sides
 }

@@ -6,7 +6,7 @@ use pbrt_rs::{
     bvh::BVHNode,
     camera::Camera,
     hit::{
-        quad::Quad,
+        quad::{box_scene, Quad},
         sphere::{self, Sphere},
         Hittable,
     },
@@ -353,6 +353,17 @@ fn cornell_box() {
         Vector3::new(0.0, 555.0, 0.0),
         white.clone(),
     )));
+
+    scene.merge(box_scene(
+        Vector3::new(130.0, 0.0, 65.0),
+        Vector3::new(295.0,165.0,230.0),
+        white.clone(),
+    ));
+    scene.merge(box_scene(
+        Vector3::new(265.0, 0.0, 295.0),
+        Vector3::new(430.0,330.0,460.0),
+        white.clone(),
+    ));
 
     let mut camera = Camera::default();
     camera.aspect_ratio = 1.0;

@@ -1,12 +1,12 @@
 use crate::{
-    bvh::AABB,
+    bvh::{AABB, AABB_EMPTY},
     hit::{HitRecord, Hittable},
     util::Interval,
 };
 #[derive(Debug, Default)]
 pub struct Scene {
     pub objects: Vec<Hittable>,
-    // bbox: AABB,
+    bbox: AABB,
 }
 
 impl Scene {
@@ -23,15 +23,27 @@ impl Scene {
     }
 
     pub fn add(&mut self, obj: Hittable) {
-        // self.bbox = AABB::merge(&self.bbox, obj.bbox());
+        self.bbox = AABB::merge(&self.bbox, obj.bbox());
         self.objects.push(obj);
     }
     pub fn new(objects: Vec<Hittable>) -> Self {
-        Self { objects }
+        let mut x = Self {
+            objects: vec![],
+            bbox: AABB_EMPTY,
+        };
+        for obj in objects {
+            x.add(obj);
+        }
+        x
     }
     pub fn new_with_bvh(bvh_node: Hittable) -> Self {
         let mut scene = Scene::new(vec![]);
         scene.add(bvh_node);
         scene
+    }
+    pub fn merge(&mut self, rhs: Self) {
+        for obj in rhs.objects {
+            self.add(obj);
+        }
     }
 }
