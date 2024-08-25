@@ -15,7 +15,7 @@ use pbrt_rs::{
     material::{Dielectric, DiffuseLight, Lambertian, Material, Metal},
     scene::Scene,
     texture::{CheckerTexture, ImageTexture, NoiseTexture, SolidColor, Texture},
-    util::{random_f32, random_vec, range_random_f32},
+    util::{random_f32, random_vec, random_vec_range, range_random_f32},
 };
 
 fn build_random_scene() {
@@ -409,8 +409,7 @@ fn cornell_smoke() {
     let red = Material::Diffuse(Lambertian::new_with_color(Vector3::new(0.65, 0.05, 0.05)));
     let white = Material::Diffuse(Lambertian::new_with_color(Vector3::new(0.73, 0.73, 0.73)));
     let green = Material::Diffuse(Lambertian::new_with_color(Vector3::new(0.12, 0.45, 0.15)));
-    let light =
-        Material::DiffuseLight(DiffuseLight::new_with_color(Vector3::new(7.0, 7.0,7.0)));
+    let light = Material::DiffuseLight(DiffuseLight::new_with_color(Vector3::new(7.0, 7.0, 7.0)));
 
     scene.add(Hittable::Quad(Quad::new(
         Vector3::new(555.0, 0.0, 0.0),
@@ -461,7 +460,8 @@ fn cornell_smoke() {
     );
     let box1 = RotateY::new(Hittable::PrefabScene(box1), 15.0);
     let box1 = Translate::new(Hittable::Rotate(box1), Vector3::new(265.0, 0.0, 295.0));
-    let box1 = ConstMedium::new_with_color(Hittable::Translate(box1), 0.01, Vector3::new(0.0, 0.0, 0.0));
+    let box1 =
+        ConstMedium::new_with_color(Hittable::Translate(box1), 0.01, Vector3::new(0.0, 0.0, 0.0));
     scene.add(Hittable::ConstantMedium(box1));
 
     let box2 = box_scene(
@@ -471,10 +471,11 @@ fn cornell_smoke() {
     );
     let box2 = RotateY::new(Hittable::PrefabScene(box2), -18.0);
     let box2 = Translate::new(Hittable::Rotate(box2), Vector3::new(130.0, 0.0, 65.0));
-    let box2 = ConstMedium::new_with_color(Hittable::Translate(box2), 0.01, Vector3::new(1.0, 1.0, 1.0));
+    let box2 =
+        ConstMedium::new_with_color(Hittable::Translate(box2), 0.01, Vector3::new(1.0, 1.0, 1.0));
     scene.add(Hittable::ConstantMedium(box2));
-    let bvh= BVHNode::new_with_scene(&scene);
-    scene=Scene::new_with_bvh(Hittable::BVHNode(bvh));
+    let bvh = BVHNode::new_with_scene(&scene);
+    scene = Scene::new_with_bvh(Hittable::BVHNode(bvh));
     let mut camera = Camera::default();
     camera.aspect_ratio = 1.0;
     camera.image_width = 600;
@@ -492,6 +493,142 @@ fn cornell_smoke() {
     camera.render(&scene);
 }
 
+fn final_scene() {
+    let mut scene = Scene::default();
+
+    let ground = Material::Diffuse(Lambertian::new_with_color(Vector3::new(0.48, 0.83, 0.53)));
+
+    let mut boxes1 = Scene::default();
+    for i in 0..20 {
+        for j in 0..20 {
+            let w = 100.0;
+            let x0 = -1000.0 + i as f32 * w;
+            let z0 = -1000.0 + j as f32 * w;
+            let y0 = 0.0;
+            let x1 = x0 + w;
+            let y1 = range_random_f32(1.0, 101.0);
+            let z1 = z0 + w;
+            boxes1.add(Hittable::PrefabScene(box_scene(
+                Vector3::new(x0, y0, z0),
+                Vector3::new(x1, y1, z1),
+                ground.clone(),
+            )));
+        }
+    }
+
+    scene.add(pbrt_rs::hit::Hittable::BVHNode(BVHNode::new_with_scene(
+        &boxes1,
+    )));
+    let light = DiffuseLight::new_with_color(Vector3::new(7.0, 7.0, 7.0));
+    scene.add(pbrt_rs::hit::Hittable::Quad(Quad::new(
+        Vector3::new(123.0, 554.0, 147.0),
+        Vector3::new(300.0, 0.0, 0.0),
+        Vector3::new(0.0, 0.0, 265.0),
+        pbrt_rs::material::Material::DiffuseLight(light),
+    )));
+
+    let center1 = Vector3::new(400.0, 400.0, 200.0);
+    let motion = Vector3::new(30.0, 0.0, 0.0);
+    let sphere_material =
+        Material::Diffuse(Lambertian::new_with_color(Vector3::new(0.7, 0.3, 0.1)));
+    scene.add(pbrt_rs::hit::Hittable::Sphere(Sphere::new_with_motion(
+        center1,
+        motion,
+        50.0,
+        sphere_material,
+    )));
+
+    scene.add(pbrt_rs::hit::Hittable::Sphere(Sphere::new(
+        Vector3::new(260.0, 150.0, 45.0),
+        50.0,
+        pbrt_rs::material::Material::Dielectric(Dielectric::new(1.5)),
+    )));
+    scene.add(pbrt_rs::hit::Hittable::Sphere(Sphere::new(
+        Vector3::new(0.0, 150.0, 145.0),
+        50.0,
+        Material::Metal(Metal::new(Vector3::new(0.8, 0.8, 0.9),1.0))
+    )));
+
+    let boundary = Hittable::Sphere(Sphere::new(
+        Vector3::new(360.0, 150.0, 145.0),
+        70.0,
+        pbrt_rs::material::Material::Dielectric(Dielectric::new(1.5)),
+    ));
+    scene.add(boundary.clone());
+
+    scene.add(pbrt_rs::hit::Hittable::ConstantMedium(
+        ConstMedium::new_with_color(boundary, 0.2, Vector3::new(0.2, 0.4, 0.9)),
+    ));
+    let boundary = Sphere::new(
+        Vector3::zeros(),
+        5000.0,
+        pbrt_rs::material::Material::Dielectric(Dielectric::new(1.5)),
+    );
+    scene.add(pbrt_rs::hit::Hittable::ConstantMedium(
+        ConstMedium::new_with_color(
+            pbrt_rs::hit::Hittable::Sphere(boundary),
+            0.0001,
+            Vector3::new(1.0, 1.0, 1.0),
+        ),
+    ));
+    let image = image::open("assets/earthmap.jpg")
+        .expect("image not found")
+        .into_rgb8();
+    let emat = Lambertian::new(Texture::ImageTexture(ImageTexture::new(image)));
+    scene.add(pbrt_rs::hit::Hittable::Sphere(Sphere::new(
+        Vector3::new(400.0, 200.0, 400.0),
+        100.0,
+        pbrt_rs::material::Material::Diffuse(emat),
+    )));
+
+    let pertext = NoiseTexture::new(0.2);
+    scene.add(pbrt_rs::hit::Hittable::Sphere(Sphere::new(
+        Vector3::new(220.0, 280.0, 300.0),
+        80.0,
+        pbrt_rs::material::Material::Diffuse(Lambertian::new(pbrt_rs::texture::Texture::Noise(
+            pertext,
+        ))),
+    )));
+
+    let white = Lambertian::new_with_color(Vector3::new(0.73, 0.73, 0.73));
+    let ns = 1000;
+    let mut boxes2 = Scene::default();
+    for _ in 0..ns {
+        boxes2.add(Hittable::Sphere(Sphere::new(
+            random_vec_range(0.0, 165.0),
+            10.0,
+            pbrt_rs::material::Material::Diffuse(white.clone()),
+        )));
+    }
+
+    let translate = Translate::new(
+        pbrt_rs::hit::Hittable::Rotate(RotateY::new(
+            Hittable::BVHNode(BVHNode::new_with_scene(&boxes2)),
+            15.0,
+        )),
+        Vector3::new(-100.0, 270.0, 395.0),
+    );
+    scene.add(pbrt_rs::hit::Hittable::Translate(translate));
+
+    let scene = Scene::new_with_bvh(pbrt_rs::hit::Hittable::BVHNode(BVHNode::new_with_scene(
+        &scene,
+    )));
+    let mut camera = Camera::default();
+    camera.aspect_ratio = 1.0;
+    camera.image_width = 400;
+
+    camera.look_from = Vector3::new(478.0, 278.0, -600.0);
+    camera.look_at = Vector3::new(278.0, 278.0, 0.0);
+    camera.vup = Vector3::new(0.0, 1.0, 0.0);
+    camera.background = Vector3::zeros();
+
+    camera.defocus_angle = 0.0;
+    camera.focus_dist = 10.0;
+    camera.vfov = 40.0;
+    camera.sample_per_pixel = 1000;
+    camera.depth = 50;
+    camera.render(&scene);
+}
 fn main() {
-    cornell_smoke();
+    final_scene();
 }

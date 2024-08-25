@@ -59,7 +59,6 @@ impl Lambertian {
     pub fn emitted(&self, _uv: &Vector2<f32>, _p: &Vector3<f32>) -> Vector3<f32> {
         Vector3::zeros()
     }
-
 }
 #[derive(Debug, Clone, Copy)]
 pub struct Metal {
@@ -85,7 +84,6 @@ impl Metal {
     pub fn emitted(&self, _uv: &Vector2<f32>, _p: &Vector3<f32>) -> Vector3<f32> {
         Vector3::zeros()
     }
-
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -106,14 +104,13 @@ impl Dielectric {
             self.refraction_index
         };
         let unit_dir = ray.direction.normalize();
-        let cos_theta = (-unit_dir).dot(&hit_record.normal).abs().min(1.0);
+        let cos_theta = (-unit_dir).dot(&hit_record.normal).min(1.0);
         let sin_theta = (1.0 - cos_theta * cos_theta).sqrt();
         let cannot_refract = ri * sin_theta > 1.0;
-        let direction;
-        if cannot_refract || reflectance(cos_theta, ri) > random_f32() {
-            direction = reflect(&unit_dir, &hit_record.normal);
+        let direction = if cannot_refract || reflectance(cos_theta, ri) > random_f32() {
+            reflect(&unit_dir, &hit_record.normal)
         } else {
-            direction = refract(&unit_dir, &hit_record.normal, ri);
+            refract(&unit_dir, &hit_record.normal, ri)
         };
 
         let scattered = Ray::new_with_time(hit_record.p, direction, ray.time);
@@ -122,7 +119,6 @@ impl Dielectric {
     pub fn emitted(&self, _uv: &Vector2<f32>, _p: &Vector3<f32>) -> Vector3<f32> {
         Vector3::zeros()
     }
-
 }
 #[derive(Debug, Clone)]
 
