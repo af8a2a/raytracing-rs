@@ -7,3 +7,4 @@ pub mod material;
 pub mod bvh;
 pub mod texture;
 pub mod noise;
+pub mod aabb;

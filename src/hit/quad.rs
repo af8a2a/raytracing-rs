@@ -1,6 +1,6 @@
 use nalgebra::{Vector2, Vector3};
 
-use crate::{bvh::AABB, material::Material, scene::Scene, util::Interval};
+use crate::{aabb::AABB, material::Material, scene::Scene, util::Interval};
 
 use super::HitRecord;
 #[derive(Debug, Clone)]

@@ -48,6 +48,10 @@ impl Interval {
         let padding = delta / 2.0;
         Interval::new(self.min - padding, self.max + padding)
     }
+
+    pub fn add_scalar(&self, scalar: f32) -> Self {
+        Self::new(self.min + scalar, self.max + scalar)
+    }
 }
 impl Default for Interval {
     fn default() -> Self {

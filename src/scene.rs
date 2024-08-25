@@ -1,12 +1,12 @@
 use crate::{
-    bvh::{AABB, AABB_EMPTY},
+    aabb::{AABB, AABB_EMPTY},
     hit::{HitRecord, Hittable},
     util::Interval,
 };
-#[derive(Debug, Default)]
+#[derive(Debug, Default,Clone)]
 pub struct Scene {
     pub objects: Vec<Hittable>,
-    bbox: AABB,
+    pub bbox: AABB,
 }
 
 impl Scene {

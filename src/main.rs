@@ -6,9 +6,7 @@ use pbrt_rs::{
     bvh::BVHNode,
     camera::Camera,
     hit::{
-        quad::{box_scene, Quad},
-        sphere::{self, Sphere},
-        Hittable,
+        quad::{box_scene, Quad}, sphere::{self, Sphere}, translate::{RotateY, Translate}, Hittable
     },
     material::{Dielectric, DiffuseLight, Lambertian, Material, Metal},
     scene::Scene,
@@ -354,16 +352,36 @@ fn cornell_box() {
         white.clone(),
     )));
 
-    scene.merge(box_scene(
-        Vector3::new(130.0, 0.0, 65.0),
-        Vector3::new(295.0,165.0,230.0),
+    let box1= box_scene(
+        Vector3::new(0.0, 0.0, 0.0),
+        Vector3::new(165.0, 330.0, 165.0),
         white.clone(),
-    ));
-    scene.merge(box_scene(
-        Vector3::new(265.0, 0.0, 295.0),
-        Vector3::new(430.0,330.0,460.0),
+    );
+    let box1=RotateY::new(Hittable::PrefabScene(box1), 15.0);
+    let box1=Translate::new(Hittable::Rotate(box1), Vector3::new(265.0, 0.0, 295.0));
+
+    scene.add(Hittable::Translate(box1));
+
+    let box2= box_scene(
+        Vector3::new(0.0, 0.0, 0.0), 
+        Vector3::new(165.0, 165.0, 165.0),
         white.clone(),
-    ));
+    );
+    let box2=RotateY::new(Hittable::PrefabScene(box2), -18.0);
+    let box2=Translate::new(Hittable::Rotate(box2), Vector3::new(130.0, 0.0, 65.0));
+    scene.add(Hittable::Translate(box2));
+
+
+    // scene.merge(box_scene(
+    //     Vector3::new(130.0, 0.0, 65.0),
+    //     Vector3::new(295.0,165.0,230.0),
+    //     white.clone(),
+    // ));
+    // scene.merge(box_scene(
+    //     Vector3::new(265.0, 0.0, 295.0),
+    //     Vector3::new(430.0,330.0,460.0),
+    //     white.clone(),
+    // ));
 
     let mut camera = Camera::default();
     camera.aspect_ratio = 1.0;
