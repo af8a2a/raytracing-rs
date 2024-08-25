@@ -410,7 +410,7 @@ fn cornell_smoke() {
     let white = Material::Diffuse(Lambertian::new_with_color(Vector3::new(0.73, 0.73, 0.73)));
     let green = Material::Diffuse(Lambertian::new_with_color(Vector3::new(0.12, 0.45, 0.15)));
     let light =
-        Material::DiffuseLight(DiffuseLight::new_with_color(Vector3::new(14.0, 14.0,14.0)));
+        Material::DiffuseLight(DiffuseLight::new_with_color(Vector3::new(7.0, 7.0,7.0)));
 
     scene.add(Hittable::Quad(Quad::new(
         Vector3::new(555.0, 0.0, 0.0),
@@ -427,9 +427,9 @@ fn cornell_smoke() {
     )));
 
     scene.add(Hittable::Quad(Quad::new(
-        Vector3::new(343.0, 554.0, 332.0),
-        Vector3::new(-130.0, 0.0, 0.0),
-        Vector3::new(0.0, 0.0, -105.0),
+        Vector3::new(113.0, 554.0, 127.0),
+        Vector3::new(330.0, 0.0, 0.0),
+        Vector3::new(0.0, 0.0, 305.0),
         light.clone(),
     )));
 
