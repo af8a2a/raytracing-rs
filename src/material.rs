@@ -1,10 +1,15 @@
+use std::f32::consts::PI;
+
 use nalgebra::{Vector2, Vector3};
 
 use crate::{
     hit::{self, HitRecord},
     ray::Ray,
     texture::{SolidColor, Texture},
-    util::{near_zero, random_f32, random_unit_vector, reflect, reflectance, refract},
+    util::{
+        near_zero, random_f32, random_on_hemisphere, random_unit_vector, reflect, reflectance,
+        refract,
+    },
 };
 #[derive(Debug, Clone)]
 pub enum Material {
@@ -31,6 +36,15 @@ impl Material {
             Material::DiffuseLight(light) => light.emitted(uv, p),
         }
     }
+    pub fn pdf(&self, ray: &Ray, scattered: &Ray, rec: &HitRecord) -> f32 {
+        match self {
+            Material::Diffuse(lambert) => lambert.pdf(ray, scattered, rec),
+            // Material::Metal(_) => 0.0,
+            // Material::Dielectric(_) => 0.0,
+            // Material::DiffuseLight(_) => 0.0,
+            _ => 1.0 / (2.0 * PI),
+        }
+    }
 }
 #[derive(Debug, Clone)]
 pub struct Lambertian {
@@ -48,6 +62,7 @@ impl Lambertian {
     }
     pub fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<(Ray, Vector3<f32>)> {
         let mut scatter_direction = hit_record.normal + random_unit_vector();
+        let mut scatter_direction = random_on_hemisphere(&hit_record.normal);
         if near_zero(&scatter_direction) {
             scatter_direction = hit_record.normal;
         }
@@ -58,6 +73,15 @@ impl Lambertian {
     }
     pub fn emitted(&self, _uv: &Vector2<f32>, _p: &Vector3<f32>) -> Vector3<f32> {
         Vector3::zeros()
+    }
+
+    pub fn pdf(&self, _ray: &Ray, scattered: &Ray, rec: &HitRecord) -> f32 {
+        let cos_theta = rec.normal.dot(&scattered.direction.normalize());
+        if cos_theta < 0.0 {
+            0.0
+        } else {
+            cos_theta / PI
+        }
     }
 }
 #[derive(Debug, Clone, Copy)]

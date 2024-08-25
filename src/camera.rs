@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use image::{Rgb, RgbImage};
 use nalgebra::{clamp, Vector3};
 use rayon::iter::ParallelIterator;
@@ -50,6 +52,9 @@ pub struct Camera {
     u: Vector3<f32>,
     v: Vector3<f32>,
     w: Vector3<f32>,
+
+    sqrt_spp: u32,
+    recip_sqrt_spp: f32,
 }
 impl Default for Camera {
     fn default() -> Self {
@@ -75,6 +80,8 @@ impl Default for Camera {
             defocus_disk_u: Vector3::zeros(),
             defocus_disk_v: Vector3::zeros(),
             background: Vector3::new(1.0, 1.0, 1.0),
+            sqrt_spp: 1,
+            recip_sqrt_spp: 1.0,
         }
     }
 }
@@ -116,6 +123,9 @@ impl Camera {
         let defocus_radius = self.focus_dist * ((self.defocus_angle / 2.0).to_radians()).tan();
         self.defocus_disk_u = self.u * defocus_radius;
         self.defocus_disk_v = self.v * defocus_radius;
+
+        self.sqrt_spp = (self.sample_per_pixel as f32).sqrt() as u32;
+        self.recip_sqrt_spp = 1.0 / self.sqrt_spp as f32;
     }
 
     pub fn render(&mut self, scene: &Scene) {
@@ -139,7 +149,8 @@ impl Camera {
     }
 
     fn get_ray(&self, x: u32, y: u32) -> Ray {
-        let offset = sample_square();
+        let offset = self.sample_sqare_stratified(x, y);
+        // let offset=sample_square();
         let pixel_sample = self.pixel00_loc
             + (x as f32 + offset.x) * self.pixel_delta_u
             + (y as f32 + offset.y) * self.pixel_delta_v;
@@ -165,12 +176,19 @@ impl Camera {
                 let color_from_emission = record.material.emitted(&record.uv, &record.p);
                 match record.material.scatter(ray, &record) {
                     Some((scattered, attenuation)) => {
-                        return color_from_emission
-                            + attenuation.component_mul(&self.ray_color(
+                        let scattering_pdf = record.material.pdf(ray, &scattered, &record);
+                        // let scattering_pdf = 1.0;
+                        let pdf_value = 1.0 / (2.0 * PI);
+                        let pdf_value = scattering_pdf;
+                        // let pdf_value = scattering_pdf;
+                        let color_from_scatter = (scattering_pdf
+                            * attenuation.component_mul(&self.ray_color(
                                 &scattered,
                                 scene,
                                 depth - 1,
-                            ))
+                            )))
+                            / pdf_value;
+                        return color_from_emission + color_from_scatter;
                     }
                     None => color_from_emission,
                 }
@@ -182,5 +200,11 @@ impl Camera {
     fn defocus_disk_sample(&self) -> Vector3<f32> {
         let p = random_unit_vector();
         self.center + self.defocus_disk_u * p.x + self.defocus_disk_v * p.y
+    }
+
+    fn sample_sqare_stratified(&self, x: u32, y: u32) -> Vector3<f32> {
+        let px = (x as f32 + random_f32()) * self.recip_sqrt_spp - 0.5;
+        let py = (y as f32 + random_f32()) * self.recip_sqrt_spp - 0.5;
+        Vector3::new(px, py, 0.0)
     }
 }

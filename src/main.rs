@@ -329,7 +329,7 @@ fn cornell_box() {
     )));
 
     scene.add(Hittable::Quad(Quad::new(
-        Vector3::new(343.0, 554.0, 332.0),
+        Vector3::new(343.0, 554.0, 132.0),
         Vector3::new(-130.0, 0.0, 0.0),
         Vector3::new(0.0, 0.0, -105.0),
         light.clone(),
@@ -374,18 +374,7 @@ fn cornell_box() {
     let box2 = RotateY::new(Hittable::PrefabScene(box2), -18.0);
     let box2 = Translate::new(Hittable::Rotate(box2), Vector3::new(130.0, 0.0, 65.0));
     scene.add(Hittable::Translate(box2));
-
-    // scene.merge(box_scene(
-    //     Vector3::new(130.0, 0.0, 65.0),
-    //     Vector3::new(295.0,165.0,230.0),
-    //     white.clone(),
-    // ));
-    // scene.merge(box_scene(
-    //     Vector3::new(265.0, 0.0, 295.0),
-    //     Vector3::new(430.0,330.0,460.0),
-    //     white.clone(),
-    // ));
-
+    // println!("{:#?}",scene);
     let mut camera = Camera::default();
     camera.aspect_ratio = 1.0;
     camera.image_width = 600;
@@ -398,7 +387,7 @@ fn cornell_box() {
     camera.defocus_angle = 0.0;
     camera.focus_dist = 10.0;
     camera.vfov = 40.0;
-    camera.sample_per_pixel = 200;
+    camera.sample_per_pixel = 100;
     camera.depth = 50;
     camera.render(&scene);
 }
@@ -630,5 +619,5 @@ fn final_scene() {
     camera.render(&scene);
 }
 fn main() {
-    final_scene();
+    cornell_box();
 }
