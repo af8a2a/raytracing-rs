@@ -1,6 +1,6 @@
 use nalgebra::{Vector2, Vector3};
 
-use crate::{aabb::AABB, material::Material, scene::Scene, util::Interval};
+use crate::{aabb::AABB, material::Material, ray::Ray, scene::Scene, util::{random_f32, Interval}};
 
 use super::HitRecord;
 #[derive(Debug, Clone)]
@@ -14,6 +14,7 @@ pub struct Quad {
     pub w: Vector3<f32>,
     pub material: Material,
     pub aabb: AABB,
+    pub area:f32,
 }
 
 impl Quad {
@@ -36,6 +37,7 @@ impl Quad {
             normal,
             d,
             w,
+            area: n.norm(),
         }
     }
 
@@ -57,35 +59,56 @@ impl Quad {
         let plannar_hitpt_vec = intersection - self.q;
         let alpha = self.w.dot(&plannar_hitpt_vec.cross(&self.v));
         let beta = self.w.dot(&self.u.cross(&plannar_hitpt_vec));
+        let p = intersection;
 
-        let mut hit = HitRecord {
-            t,
-            p: intersection,
-            normal: self.normal,
-            front_face: true,
-            uv: Vector2::zeros(),
-            material: &self.material,
-        };
-        hit.set_face_normal(ray, &self.normal);
-        if !self.is_interior(alpha, beta, &mut hit) {
-            return record;
+        match self.is_interior(alpha, beta) {
+            Some(uv) => {
+                let mut rec = HitRecord {
+                    p,
+                    normal: Vector3::zeros(),
+                    material: &self.material,
+                    t,
+                    uv,
+                    front_face: true,
+                };
+                rec.set_face_normal(ray, &self.normal);
+                Some(rec)
+            }
+            None => None,
         }
-
-        record.replace(hit);
-        record
     }
 
     /// Given the hit point in plane coordinates, return false if it is outside the
     /// primitive, otherwise set the hit record UV coordinates and return true.
 
-    pub fn is_interior(&self, a: f32, b: f32, rec: &mut HitRecord) -> bool {
-        if !(0.0..=1.0).contains(&a) || !(0.0..=1.0).contains(&b) {
-            return false;
+    pub fn is_interior(&self, u: f32, v: f32) -> Option<Vector2<f32>> {
+        // 给定平面坐标中的击中点，如果它在基元之外，则返回false，否则设置击中记录的UV坐标并返回true。
+        if !(0.0..=1.0).contains(&u) || !(0.0..=1.0).contains(&v) {
+            return None;
         }
 
-        rec.uv = Vector2::new(a, b);
-        true
+        Some(Vector2::new(u, v))
     }
+    pub fn pdf_value(&self, origin: Vector3<f32>, direction: Vector3<f32>) -> f32 {
+        match self.hit(
+            &Ray::new(origin, direction),
+            &Interval::new(0.00001, f32::INFINITY),
+        ) {
+            Some(rec) => {
+                let distance_squared = rec.t * rec.t * direction.norm_squared();
+                let cosine = (direction.dot(&rec.normal)) / direction.norm().abs();
+
+                distance_squared / (cosine * self.area)
+            }
+            None => 0.0,
+        }
+    }
+    pub fn random(&self, origin: Vector3<f32>) -> Vector3<f32> {
+        let p =
+            self.q + (random_f32() * self.u) + (random_f32() * self.v);
+        p - origin
+    }
+
 }
 
 pub fn box_scene(a: Vector3<f32>, b: Vector3<f32>, mat: Material) -> Scene {

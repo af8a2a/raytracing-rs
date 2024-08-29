@@ -1,10 +1,12 @@
-use std::f32::consts::PI;
+use std::f32::{consts::PI, INFINITY};
 
 use image::{Rgb, RgbImage};
 use nalgebra::{clamp, Vector3};
 use rayon::iter::ParallelIterator;
 
 use crate::{
+    hit::Hittable,
+    pdf::{HittablePdf, MixturePdf},
     ray::Ray,
     scene::Scene,
     util::{random_f32, random_unit_vector, sample_square, Interval},
@@ -128,7 +130,7 @@ impl Camera {
         self.recip_sqrt_spp = 1.0 / self.sqrt_spp as f32;
     }
 
-    pub fn render(&mut self, scene: &Scene) {
+    pub fn render(&mut self, world: Hittable, lights: Hittable) {
         self.initialize();
 
         let width = self.image_width;
@@ -140,7 +142,7 @@ impl Camera {
             let mut color = Vector3::new(0.0, 0.0, 0.0);
             for _ in 0..self.sample_per_pixel {
                 let ray = self.get_ray(i, j);
-                color += self.ray_color(&ray, &scene, self.depth);
+                color += self.ray_color(&ray, self.depth, &world, &lights);
             }
             *pixel = color_to_rgb(color / self.sample_per_pixel as f32);
         });
@@ -164,33 +166,53 @@ impl Camera {
         Ray::new_with_time(ray_origin, ray_dir, ray_time)
     }
 
-    fn ray_color(&self, ray: &Ray, scene: &Scene, depth: i32) -> Vector3<f32> {
+    fn ray_color(
+        &self,
+        r: &Ray,
+        depth: i32,
+        world: &Hittable,
+        lights: &Hittable,
+    ) -> Vector3<f32> {
+        // 如果我们超过了光线反弹限制，就不再收集光线。
         if depth <= 0 {
-            return Vector3::new(0.0, 0.0, 0.0);
+            return Vector3::default();
         }
 
-        let hit = scene.hit(ray, &Interval::new(0.0001, f32::MAX));
+        // 如果光线没有击中了世界中的任何东西，则返回背景颜色。
+        match world.hit(r, &Interval::new(0.001, INFINITY)) {
+            Some(rec) => {
+                let mat = rec.material;
+                let color_from_emission = mat.emitted(&rec.uv, &rec.p, &rec);
 
-        match hit {
-            Some(record) => {
-                let color_from_emission = record.material.emitted(&record.uv, &record.p);
-                match record.material.scatter(ray, &record) {
-                    Some((scattered, attenuation)) => {
-                        let scattering_pdf = record.material.pdf(ray, &scattered, &record);
-                        // let scattering_pdf = 1.0;
-                        let pdf_value = 1.0 / (2.0 * PI);
-                        let pdf_value = scattering_pdf;
-                        // let pdf_value = scattering_pdf;
-                        let color_from_scatter = (scattering_pdf
-                            * attenuation.component_mul(&self.ray_color(
-                                &scattered,
-                                scene,
+                match mat.scatter(r, &rec) {
+                    Some(srec) => {
+                        if srec.skip_pdf {
+                            return srec.attenuation.component_mul(&self.ray_color(
+                                &srec.skip_pdf_ray,
                                 depth - 1,
-                            )))
-                            / pdf_value;
-                        return color_from_emission + color_from_scatter;
+                                world,
+                                lights,
+                            ));
+                        }
+
+                        let light_pdf =
+                            crate::pdf::PDF::Hittable(Box::new(HittablePdf::new(lights, rec.p)));
+                        let mixed_pdf = crate::pdf::PDF::Mixture(Box::new(MixturePdf::new(
+                            &light_pdf, &srec.pdf,
+                        )));
+
+                        let scattered = Ray::new_with_time(rec.p, mixed_pdf.generate(), r.time);
+                        let pdf = mixed_pdf.value(&scattered.direction);
+
+                        let scattering_pdf = mat.pdf(r, &scattered, &rec);
+
+                        let sample_color = self.ray_color(&scattered, depth - 1, world, lights);
+                        let color_from_scatter =
+                            (srec.attenuation.component_mul(&sample_color) * scattering_pdf) / pdf;
+
+                        color_from_emission + color_from_scatter
                     }
-                    None => color_from_emission,
+                    None => return color_from_emission,
                 }
             }
             None => self.background,

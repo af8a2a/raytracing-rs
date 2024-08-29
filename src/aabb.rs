@@ -21,13 +21,11 @@ impl AABB {
         tmp.pad_to_minimums();
         tmp
     }
-    pub fn axis_interval(&self, axis: usize) -> &Interval {
-        if axis == 1 {
-            &self.y
-        } else if axis == 2 {
-            &self.z
-        } else {
-            &self.x
+    pub fn axis(&self, axis: usize) -> &Interval {
+        match axis {
+            0 => &self.x,
+            1 => &self.y,
+            _ => &self.z,
         }
     }
     pub fn merge(lhs: &Self, rhs: &Self) -> Self {
@@ -38,31 +36,24 @@ impl AABB {
         tmp.pad_to_minimums();
         tmp
     }
-    pub fn hit(&self, ray: &crate::ray::Ray, interval: &Interval) -> bool {
-        let mut interval = interval.clone();
-        let ray_orig = ray.origin;
-        let ray_dir = ray.direction;
+    pub fn hit(&self, ray: &crate::ray::Ray, interval: &mut Interval) -> bool {
         for axis in 0..3 {
-            let ax = self.axis_interval(axis);
-            let adinv = 1.0 / ray_dir.index(axis);
+            let inv0 = 1.0 / ray.direction.index(axis);
+            let orig = ray.origin.index(axis);
 
-            let t0 = (ax.min - ray_orig.index(axis)) * adinv;
-            let t1 = (ax.max - ray_orig.index(axis)) * adinv;
-            if t0 < t1 {
-                if t0 > interval.min {
-                    interval.min = t0;
-                }
-                if t1 < interval.max {
-                    interval.max = t1;
-                }
-            } else {
-                if t1 > interval.min {
-                    interval.min = t1;
-                }
-                if t0 < interval.max {
-                    interval.max = t0;
-                }
+            let mut t0 = (self.axis(axis).min - orig) * inv0;
+            let mut t1 = (self.axis(axis).max - orig) * inv0;
+
+            if inv0 < 0.0 {
+                std::mem::swap(&mut t0, &mut t1);
             }
+            if t0 > interval.min {
+                interval.min = t0;
+            }
+            if t1 < interval.max {
+                interval.max = t1;
+              }
+        
             if interval.max <= interval.min {
                 return false;
             }

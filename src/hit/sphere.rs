@@ -1,8 +1,8 @@
-use std::f32::consts::PI;
+use std::f32::{consts::PI, INFINITY};
 
 use nalgebra::{Vector2, Vector3};
 
-use crate::{aabb::AABB, material::Material, util::Interval};
+use crate::{aabb::AABB, material::Material, onb::Onb, ray::Ray, util::{random_f32, Interval}};
 
 use super::HitRecord;
 #[derive(Debug, Clone)]
@@ -95,4 +95,45 @@ impl Sphere {
     pub fn sphere_center(&self, time: f32) -> Vector3<f32> {
         self.center + self.motion.unwrap_or(Vector3::zeros()) * time
     }
+
+    pub fn pdf_value(&self, origin: Vector3<f32>, direction: Vector3<f32>) -> f32 {
+        // 这个方法只适用于静止的球体。
+
+        if self
+            .hit(
+                &Ray::new(origin, direction),
+                &Interval::new(0.001, INFINITY),
+            )
+            .is_none()
+        {
+            return 0.0;
+        }
+
+        let cos_theta_max =
+            (1.0 - self.radius * self.radius / (self.center - origin).norm_squared()).sqrt();
+        let solid_angle = 2.0 * PI * (1.0 - cos_theta_max);
+
+        1.0 / solid_angle
+    }
+    pub fn random(&self, origin: Vector3<f32>) -> Vector3<f32> {
+        let direction = self.center - origin;
+        let distance_squared = direction.norm_squared();
+        let uvw = Onb::new_from_w(direction);
+        uvw.local_v(Self::random_to_sphere(self.radius, distance_squared))
+    }
+
+
+    fn random_to_sphere(radius: f32, distance_squared: f32) -> Vector3<f32> {
+        let r1 = random_f32();
+        let r2 = random_f32();
+        let z = 1.0 + r2 * ((1.0 - radius * radius / distance_squared).sqrt() - 1.0);
+
+        let phi = 2.0 * PI * r1;
+        let x = phi.cos() * (1.0 - z * z).sqrt();
+        let y = phi.sin() * (1.0 - z * z).sqrt();
+
+        Vector3::new(x, y, z)
+    }
+
+
 }

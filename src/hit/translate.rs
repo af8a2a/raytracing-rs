@@ -50,7 +50,7 @@ impl RotateY {
         let radians = angle.to_radians();
         let sin_theta = radians.sin();
         let cos_theta = radians.cos();
-        let bbox = object.bbox().clone();
+        let bbox = object.bbox();
 
         let mut min = Vector3::new(f32::INFINITY, f32::INFINITY, f32::INFINITY);
         let mut max = Vector3::new(f32::NEG_INFINITY, f32::NEG_INFINITY, f32::NEG_INFINITY);

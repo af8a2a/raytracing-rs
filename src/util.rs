@@ -1,4 +1,5 @@
 use core::f32;
+use std::f32::consts::PI;
 
 use nalgebra::Vector3;
 use rand::{distributions::Uniform, thread_rng, Rng};
@@ -64,7 +65,7 @@ pub fn random_f32() -> f32 {
 
     rng.sample(Uniform::new(0.0, 1.0))
 }
-pub fn range_random_f32(min: f32, max: f32) -> f32 {
+pub fn random_range_f32(min: f32, max: f32) -> f32 {
     let mut rng = thread_rng();
 
     rng.sample(Uniform::new(min, max))
@@ -81,11 +82,21 @@ pub fn random_vec() -> Vector3<f32> {
 
 pub fn random_vec_range(min: f32, max: f32) -> Vector3<f32> {
     Vector3::new(
-        range_random_f32(min, max),
-        range_random_f32(min, max),
-        range_random_f32(min, max),
+        random_range_f32(min, max),
+        random_range_f32(min, max),
+        random_range_f32(min, max),
     )
 }
+
+pub fn random_in_unit_sphere() -> Vector3<f32> {
+    loop {
+        let p = random_vec_range(-1.0, 1.0);
+        if p.norm() <= 1.0 {
+            return p;
+        }
+    }
+  }
+  
 
 pub fn random_unit_vector() -> Vector3<f32> {
     loop {
@@ -132,3 +143,20 @@ pub fn random_int(min: i32, max: i32) -> i32 {
 
     rng.sample(Uniform::new(min, max))
 }
+
+
+
+
+
+pub fn random_cosine_direction() -> Vector3<f32> {
+    let r1 = random_f32();
+    let r2 = random_f32();
+  
+    let phi = 2.0 * PI * r1;
+    let x = phi.cos() * r2.sqrt();
+    let y = phi.sin() * r2.sqrt();
+    let z = (1.0 - r2).sqrt();
+  
+    Vector3::new(x, y, z)
+  }
+  
