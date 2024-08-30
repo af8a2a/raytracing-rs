@@ -1,4 +1,8 @@
-use std::f32::{consts::PI, INFINITY};
+use core::f32;
+use std::{
+    f32::{consts::PI, INFINITY, NAN},
+    ops::Add,
+};
 
 use image::{Rgb, RgbImage};
 use nalgebra::{clamp, Vector3};
@@ -20,7 +24,20 @@ fn linear_to_gamma(color: f32) -> f32 {
     }
 }
 
-fn color_to_rgb(color: Vector3<f32>) -> Rgb<u8> {
+fn color_to_rgb(color: Vector3<f32>, sample_per_pixel: f32) -> Rgb<u8> {
+    let r = color.x;
+    let g = color.y;
+    let b = color.z;
+
+    let r = if r.is_nan() { 0.0 } else { r };
+    let g = if g.is_nan() { 0.0 } else { g };
+    let b = if b.is_nan() { 0.0 } else { b };
+
+    let scale = 1.0 / sample_per_pixel as f32;
+    let r = scale * r;
+    let g = scale * g;
+    let b = scale * b;
+
     Rgb([
         (256.0 * f32::clamp(linear_to_gamma(color.x), 0.0, 0.999)) as u8,
         (256.0 * f32::clamp(linear_to_gamma(color.y), 0.0, 0.999)) as u8,
@@ -82,8 +99,8 @@ impl Default for Camera {
             defocus_disk_u: Vector3::zeros(),
             defocus_disk_v: Vector3::zeros(),
             background: Vector3::new(1.0, 1.0, 1.0),
-            sqrt_spp: 1,
-            recip_sqrt_spp: 1.0,
+            sqrt_spp: 10.0_f32.sqrt() as u32,
+            recip_sqrt_spp: 1.0 / (10.0_f32.sqrt()),
         }
     }
 }
@@ -138,48 +155,45 @@ impl Camera {
 
         let mut image = RgbImage::new(width as u32, height as u32);
 
-        image.par_enumerate_pixels_mut().for_each(|(i, j, pixel)| {
+        image.enumerate_pixels_mut().for_each(|(i, j, pixel)| {
             let mut color = Vector3::new(0.0, 0.0, 0.0);
-            for _ in 0..self.sample_per_pixel {
-                let ray = self.get_ray(i, j);
-                color += self.ray_color(&ray, self.depth, &world, &lights);
+            for s_j in 0..self.sqrt_spp {
+                for s_i in 0..self.sqrt_spp {
+                    let ray = self.get_ray(i as i32, j as i32, s_i as i32, s_j as i32);
+                    color += self.ray_color(&ray, self.depth, &world, &lights);
+                }
             }
-            *pixel = color_to_rgb(color / self.sample_per_pixel as f32);
+            *pixel = color_to_rgb(color, self.sample_per_pixel as f32);
         });
 
         image.save("image.png").expect("Failed to save image");
     }
 
-    fn get_ray(&self, x: u32, y: u32) -> Ray {
-        let offset = self.sample_sqare_stratified(x, y);
-        // let offset=sample_square();
-        let pixel_sample = self.pixel00_loc
-            + (x as f32 + offset.x) * self.pixel_delta_u
-            + (y as f32 + offset.y) * self.pixel_delta_v;
+    fn get_ray(&self, i: i32, j: i32, s_i: i32, s_j: i32) -> Ray {
+        // Get a randomly sampled camera ray for the pixel at location i,j.
+        let pixel_center =
+            self.pixel00_loc + i as f32 * self.pixel_delta_u + j as f32 * self.pixel_delta_v;
+        let pixel_sample = pixel_center + self.pixel_sample_square(s_i, s_j);
+
         let ray_origin = if self.defocus_angle <= 0.0 {
             self.center
         } else {
             self.defocus_disk_sample()
         };
-        let ray_dir = pixel_sample - ray_origin;
+        let ray_direction = pixel_sample - ray_origin;
         let ray_time = random_f32();
-        Ray::new_with_time(ray_origin, ray_dir, ray_time)
+
+        Ray::new_with_time(ray_origin, ray_direction, ray_time)
     }
 
-    fn ray_color(
-        &self,
-        r: &Ray,
-        depth: i32,
-        world: &Hittable,
-        lights: &Hittable,
-    ) -> Vector3<f32> {
+    fn ray_color(&self, r: &Ray, depth: i32, world: &Hittable, lights: &Hittable) -> Vector3<f32> {
         // 如果我们超过了光线反弹限制，就不再收集光线。
         if depth <= 0 {
             return Vector3::default();
         }
 
         // 如果光线没有击中了世界中的任何东西，则返回背景颜色。
-        match world.hit(r, &Interval::new(0.001, INFINITY)) {
+        match world.hit(r, &Interval::new(f32::EPSILON, INFINITY)) {
             Some(rec) => {
                 let mat = rec.material;
                 let color_from_emission = mat.emitted(&rec.uv, &rec.p, &rec);
@@ -195,20 +209,32 @@ impl Camera {
                             ));
                         }
 
-                        let light_pdf =
-                            crate::pdf::PDF::Hittable(Box::new(HittablePdf::new(lights, rec.p)));
+                        let light_pdf = crate::pdf::PDF::Hittable(Box::new(HittablePdf::new(
+                            lights,
+                            rec.p.clone(),
+                        )));
+                        // println!("light_pdf: {:#?}", light_pdf);
                         let mixed_pdf = crate::pdf::PDF::Mixture(Box::new(MixturePdf::new(
                             &light_pdf, &srec.pdf,
                         )));
 
                         let scattered = Ray::new_with_time(rec.p, mixed_pdf.generate(), r.time);
+
                         let pdf = mixed_pdf.value(&scattered.direction);
 
                         let scattering_pdf = mat.pdf(r, &scattered, &rec);
-
                         let sample_color = self.ray_color(&scattered, depth - 1, world, lights);
+                        if pdf.is_nan() || scattering_pdf.is_nan() {
+                            println!("pdf: {}, scattering_pdf: {}", pdf, scattering_pdf);
+                            println!("pdf: {}, scattering_pdf: {}", pdf, scattering_pdf);
+
+                        }
+                        // println!("scattering_pdf: {:#?}", scattering_pdf);
+                        // println!("pdf: {:#?}", pdf);
+
                         let color_from_scatter =
                             (srec.attenuation.component_mul(&sample_color) * scattering_pdf) / pdf;
+                        // println!("color_from_scatter: {:#?}", color_from_scatter);
 
                         color_from_emission + color_from_scatter
                     }
@@ -222,6 +248,12 @@ impl Camera {
     fn defocus_disk_sample(&self) -> Vector3<f32> {
         let p = random_unit_vector();
         self.center + self.defocus_disk_u * p.x + self.defocus_disk_v * p.y
+    }
+    fn pixel_sample_square(&self, s_i: i32, s_j: i32) -> Vector3<f32> {
+        // Returns a random point in the square surrounding a pixel at the origin.
+        let px = -0.5 + self.recip_sqrt_spp * (s_i as f32 + random_f32());
+        let py = -0.5 + self.recip_sqrt_spp * (s_j as f32 + random_f32());
+        px * self.pixel_delta_u + py * self.pixel_delta_v
     }
 
     fn sample_sqare_stratified(&self, x: u32, y: u32) -> Vector3<f32> {

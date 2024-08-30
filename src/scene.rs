@@ -48,7 +48,7 @@ impl Scene {
             self.add(obj);
         }
     }
-    pub fn pdf_value(&self, origin: Vector3<f32>, direction: Vector3<f32>) -> f32 {
+    pub fn pdf_value(&self, origin: &Vector3<f32>, direction: &Vector3<f32>) -> f32 {
         let weight = 1.0 / self.objects.len() as f32;
         let mut sum = 0.0;
 
@@ -58,9 +58,9 @@ impl Scene {
 
         sum
     }
-    pub fn random(&self, origin: Vector3<f32>) -> Vector3<f32> {
+    pub fn random(&self, origin: &Vector3<f32>) -> Vector3<f32> {
         let int_size = self.objects.len() as i32;
-        self.objects[random_int(0, int_size - 1) as usize].random(origin)
+        // println!("int_size:{}", int_size);
+        self.objects[random_int(0, int_size ) as usize].random(origin)
     }
-
 }

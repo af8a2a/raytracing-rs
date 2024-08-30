@@ -60,25 +60,25 @@ impl Hittable {
         }
     }
 
-    pub fn pdf_value(&self, origin: Vector3<f32>, direction: Vector3<f32>) -> f32 {
+    pub fn pdf_value(&self, origin: &Vector3<f32>, direction: &Vector3<f32>) -> f32 {
         match self {
-            Hittable::Quad(obj) => obj.pdf_value(origin, direction),
-            Hittable::Sphere(obj) => obj.pdf_value(origin, direction),
+            Hittable::Quad(obj) => obj.pdf_value(&origin, &direction),
+            Hittable::Sphere(obj) => obj.pdf_value(&origin, &direction),
             Hittable::BVH(_) => 0.0,
-            Hittable::PrefabScene(obj) => obj.pdf_value(origin, direction),
-            Hittable::Rotate(obj) => obj.object.pdf_value(origin, direction),
-            Hittable::Translate(obj) => obj.object.pdf_value(origin, direction),
+            Hittable::PrefabScene(obj) => obj.pdf_value(&origin, &direction),
+            Hittable::Rotate(obj) => obj.object.pdf_value(&origin, &direction),
+            Hittable::Translate(obj) => obj.object.pdf_value(&origin, &direction),
             Hittable::ConstantMedium(_) => todo!(),
         }
     }
-    pub fn random(&self, origin: Vector3<f32>) -> Vector3<f32> {
+    pub fn  random(&self, origin: &Vector3<f32>) -> Vector3<f32> {
         match self {
-            Hittable::Quad(obj) => obj.random(origin),
-            Hittable::Sphere(obj) => obj.random(origin),
+            Hittable::Quad(obj) => obj.random(&origin),
+            Hittable::Sphere(obj) => obj.random(&origin),
             Hittable::BVH(_) => Vector3::new(1.0, 0.0, 0.0),
-            Hittable::PrefabScene(obj) => obj.random(origin),
-            Hittable::Rotate(obj) => obj.object.random(origin),
-            Hittable::Translate(obj) => obj.object.random(origin),
+            Hittable::PrefabScene(obj) => obj.random(&origin),
+            Hittable::Rotate(obj) => obj.object.random(&origin),
+            Hittable::Translate(obj) => obj.object.random(&origin),
             Hittable::ConstantMedium(_) => todo!(),
         }
     }

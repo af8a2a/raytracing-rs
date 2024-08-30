@@ -1,4 +1,4 @@
-use std::f32::consts::PI;
+use std::f32::{consts::PI, NAN};
 
 use nalgebra::{Vector2, Vector3};
 
@@ -47,7 +47,7 @@ impl Material {
             Material::DiffuseLight(light) => light.scatter(ray, rec),
         }
     }
-    pub fn emitted(&self, uv: &Vector2<f32>, p: &Vector3<f32>,rec: &HitRecord) -> Vector3<f32> {
+    pub fn emitted(&self, uv: &Vector2<f32>, p: &Vector3<f32>, rec: &HitRecord) -> Vector3<f32> {
         match self {
             Material::Diffuse(lambert) => lambert.emitted(uv, p, rec),
             Material::Metal(metal) => metal.emitted(uv, p, rec),
@@ -61,7 +61,7 @@ impl Material {
             // Material::Metal(_) => 0.0,
             // Material::Dielectric(_) => 0.0,
             // Material::DiffuseLight(_) => 0.0,
-            _ => 1.0 / (2.0 * PI),
+            _ => 0.0,
         }
     }
 }
@@ -83,12 +83,13 @@ impl Lambertian {
     }
     pub fn scatter(&self, _ray: &Ray, rec: &HitRecord) -> Option<ScatterRecord> {
         let mut srec: ScatterRecord<'_> = ScatterRecord::default();
+        // println!("normal: {:?}", rec.normal);
         srec.attenuation = self.albedo.value(&rec.uv, &rec.p);
         srec.pdf = PDF::Cosine(CosinePdf::new(rec.normal));
         srec.skip_pdf = false;
         Some(srec)
     }
-    pub fn emitted(&self, _uv: &Vector2<f32>, _p: &Vector3<f32>,_rec: &HitRecord) -> Vector3<f32> {
+    pub fn emitted(&self, _uv: &Vector2<f32>, _p: &Vector3<f32>, _rec: &HitRecord) -> Vector3<f32> {
         Vector3::zeros()
     }
 
@@ -114,7 +115,7 @@ impl Metal {
     pub fn scatter(&self, ray: &Ray, rec: &HitRecord) -> Option<ScatterRecord> {
         let mut srec = ScatterRecord::default();
         srec.attenuation = self.albedo;
-        srec.skip_pdf = true;
+        srec.skip_pdf = false;
         let reflected = reflect(&ray.direction.normalize(), &rec.normal);
         srec.skip_pdf_ray = Ray::new_with_time(
             rec.p,
@@ -123,7 +124,7 @@ impl Metal {
         );
         Some(srec)
     }
-    pub fn emitted(&self, _uv: &Vector2<f32>, _p: &Vector3<f32>,_rec: &HitRecord) -> Vector3<f32> {
+    pub fn emitted(&self, _uv: &Vector2<f32>, _p: &Vector3<f32>, _rec: &HitRecord) -> Vector3<f32> {
         Vector3::zeros()
     }
 }
@@ -141,7 +142,7 @@ impl Dielectric {
     pub fn scatter(&self, ray: &Ray, rec: &HitRecord) -> Option<ScatterRecord> {
         let mut srec = ScatterRecord::default();
         srec.attenuation = Vector3::new(1.0, 1.0, 1.0);
-        srec.skip_pdf = true;
+        srec.skip_pdf = false;
         let refraction_ratio = if rec.front_face {
             1.0 / self.refraction_index
         } else {
@@ -163,7 +164,7 @@ impl Dielectric {
         srec.skip_pdf_ray = Ray::new_with_time(rec.p, direction, ray.time);
         Some(srec)
     }
-    pub fn emitted(&self, _uv: &Vector2<f32>, _p: &Vector3<f32>,_rec: &HitRecord) -> Vector3<f32> {
+    pub fn emitted(&self, _uv: &Vector2<f32>, _p: &Vector3<f32>, _rec: &HitRecord) -> Vector3<f32> {
         Vector3::zeros()
     }
 }
@@ -180,16 +181,17 @@ impl DiffuseLight {
         }
     }
     pub fn new(tex: Texture) -> Self {
-        Self { emit: Box::new(tex) }
+        Self {
+            emit: Box::new(tex),
+        }
     }
 
-    pub fn emitted(&self, uv: &Vector2<f32>, p: &Vector3<f32>,rec: &HitRecord) -> Vector3<f32> {
+    pub fn emitted(&self, uv: &Vector2<f32>, p: &Vector3<f32>, rec: &HitRecord) -> Vector3<f32> {
         if rec.front_face {
             self.emit.value(uv, p)
         } else {
             Vector3::default()
         }
-
     }
 
     pub fn scatter(&self, _ray: &Ray, _hit_record: &HitRecord) -> Option<ScatterRecord> {

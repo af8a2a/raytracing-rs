@@ -1,6 +1,12 @@
 use nalgebra::{Vector2, Vector3};
 
-use crate::{aabb::AABB, material::Material, ray::Ray, scene::Scene, util::{random_f32, Interval}};
+use crate::{
+    aabb::AABB,
+    material::Material,
+    ray::Ray,
+    scene::Scene,
+    util::{random_f32, Interval},
+};
 
 use super::HitRecord;
 #[derive(Debug, Clone)]
@@ -14,7 +20,7 @@ pub struct Quad {
     pub w: Vector3<f32>,
     pub material: Material,
     pub aabb: AABB,
-    pub area:f32,
+    pub area: f32,
 }
 
 impl Quad {
@@ -89,26 +95,26 @@ impl Quad {
 
         Some(Vector2::new(u, v))
     }
-    pub fn pdf_value(&self, origin: Vector3<f32>, direction: Vector3<f32>) -> f32 {
+    pub fn pdf_value(&self, origin: &Vector3<f32>, direction: &Vector3<f32>) -> f32 {
         match self.hit(
-            &Ray::new(origin, direction),
+            &Ray::new(origin.clone(), direction.clone()),
             &Interval::new(0.00001, f32::INFINITY),
         ) {
             Some(rec) => {
                 let distance_squared = rec.t * rec.t * direction.norm_squared();
-                let cosine = (direction.dot(&rec.normal)) / direction.norm().abs();
-
-                distance_squared / (cosine * self.area)
+                let cosine = ((direction.dot(&rec.normal)) / direction.norm()).abs();
+                // println!("self.area: {:?}", self.area);
+                let res = distance_squared / (cosine * self.area);
+                assert_eq!(res.is_nan(), false);
+                res
             }
             None => 0.0,
         }
     }
-    pub fn random(&self, origin: Vector3<f32>) -> Vector3<f32> {
-        let p =
-            self.q + (random_f32() * self.u) + (random_f32() * self.v);
+    pub fn random(&self, origin: &Vector3<f32>) -> Vector3<f32> {
+        let p = self.q + (random_f32() * self.u) + (random_f32() * self.v);
         p - origin
     }
-
 }
 
 pub fn box_scene(a: Vector3<f32>, b: Vector3<f32>, mat: Material) -> Scene {

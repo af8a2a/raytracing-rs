@@ -19,75 +19,81 @@ use pbrt_rs::{
 };
 
 fn cornell_box() {
-    let mut scene = Scene::default();
-    let mut light_scene = Scene::default();
-    let red = Material::Diffuse(Lambertian::new_with_color(Vector3::new(0.65, 0.05, 0.05)));
+    let mut world = Scene::default();
+
+    let red = Material::Diffuse(Lambertian::new_with_color((Vector3::new(0.65, 0.05, 0.05))));
     let white = Material::Diffuse(Lambertian::new_with_color(Vector3::new(0.73, 0.73, 0.73)));
     let green = Material::Diffuse(Lambertian::new_with_color(Vector3::new(0.12, 0.45, 0.15)));
-    let light =
-        Material::DiffuseLight(DiffuseLight::new_with_color(Vector3::new(15.0, 15.0, 15.0)));
+    let light = Material::DiffuseLight(DiffuseLight::new_with_color(Vector3::new(15.0, 15.0, 15.0)));
 
-    scene.add(Hittable::Quad(Quad::new(
+    world.add(Hittable::Quad(Quad::new(
         Vector3::new(555.0, 0.0, 0.0),
         Vector3::new(0.0, 555.0, 0.0),
         Vector3::new(0.0, 0.0, 555.0),
-        green.clone(),
+        green,
     )));
-
-    scene.add(Hittable::Quad(Quad::new(
+    world.add(Hittable::Quad(Quad::new(
         Vector3::new(0.0, 0.0, 0.0),
         Vector3::new(0.0, 555.0, 0.0),
         Vector3::new(0.0, 0.0, 555.0),
-        red.clone(),
+        red,
     )));
-
-    light_scene.add(Hittable::Quad(Quad::new(
-        Vector3::new(343.0, 554.0, 132.0),
+    world.add(Hittable::Quad(Quad::new(
+        Vector3::new(343.0, 554.0, 332.0),
         Vector3::new(-130.0, 0.0, 0.0),
         Vector3::new(0.0, 0.0, -105.0),
         light.clone(),
     )));
-
-    scene.add(Hittable::Quad(Quad::new(
+    world.add(Hittable::Quad(Quad::new(
         Vector3::new(0.0, 0.0, 0.0),
         Vector3::new(555.0, 0.0, 0.0),
         Vector3::new(0.0, 0.0, 555.0),
         white.clone(),
     )));
-
-    scene.add(Hittable::Quad(Quad::new(
+    world.add(Hittable::Quad(Quad::new(
         Vector3::new(555.0, 555.0, 555.0),
         Vector3::new(-555.0, 0.0, 0.0),
         Vector3::new(0.0, 0.0, -555.0),
         white.clone(),
     )));
-
-    scene.add(Hittable::Quad(Quad::new(
+    world.add(Hittable::Quad(Quad::new(
         Vector3::new(0.0, 0.0, 555.0),
         Vector3::new(555.0, 0.0, 0.0),
         Vector3::new(0.0, 555.0, 0.0),
         white.clone(),
     )));
 
-    let box1 = box_scene(
+    let box1 = Hittable::PrefabScene(box_scene(
         Vector3::new(0.0, 0.0, 0.0),
         Vector3::new(165.0, 330.0, 165.0),
         white.clone(),
-    );
-    let box1 = RotateY::new(Hittable::PrefabScene(box1), 15.0);
-    let box1 = Translate::new(Hittable::Rotate(box1), Vector3::new(265.0, 0.0, 295.0));
+    ));
+    let box1 = Hittable::Rotate(RotateY::new(box1, 15.0));
+    let box1 =
+        Hittable::Translate(Translate::new(box1, Vector3::new(265.0, 0.0, 295.0)));
+    world.add(box1);
 
-    scene.add(Hittable::Translate(box1));
+    let glass = Material::Dielectric(Dielectric::new(1.5));
+    world.add(Hittable::Sphere(Sphere::new(
+        Vector3::new(190.0, 90.0, 190.0),
+        90.0,
+        glass.clone(),
+    )));
 
-    let box2 = box_scene(
-        Vector3::new(0.0, 0.0, 0.0),
-        Vector3::new(165.0, 165.0, 165.0),
-        white.clone(),
-    );
-    let box2 = RotateY::new(Hittable::PrefabScene(box2), -18.0);
-    let box2 = Translate::new(Hittable::Rotate(box2), Vector3::new(130.0, 0.0, 65.0));
-    scene.add(Hittable::Translate(box2));
-    // println!("{:#?}",scene);
+    // Light Sources.
+    let mut lights = Scene::default();
+    lights.add(Hittable::Quad(Quad::new(
+        Vector3::new(343.0, 554.0, 332.0),
+        Vector3::new(-130.0, 0.0, 0.0),
+        Vector3::new(0.0, 0.0, -105.0),
+        light.clone(),
+    )));
+    lights.add(Hittable::Sphere(Sphere::new(
+        Vector3::new(190.0, 90.0, 190.0),
+        90.0,
+        glass.clone(),
+    )));
+
     let mut cam = Camera::default();
 
     cam.aspect_ratio = 1.0;
@@ -102,6 +108,11 @@ fn cornell_box() {
     cam.vup = Vector3::new(0.0, 1.0, 0.0);
 
     cam.defocus_angle = 0.0;
+
+    cam.render(
+        Hittable::PrefabScene(world),
+        Hittable::PrefabScene(lights),
+    );
 }
 
 fn main() {

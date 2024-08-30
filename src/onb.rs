@@ -2,7 +2,7 @@ use std::ops::{Index, IndexMut};
 
 use nalgebra::Vector3;
 
-#[derive(Default)]
+#[derive(Default,Debug)]
 pub struct Onb {
     pub u: Vector3<f32>,
     pub v: Vector3<f32>,
@@ -20,7 +20,7 @@ impl Onb {
     pub fn new_from_w(w: Vector3<f32>) -> Self {
         let unit_w = w.normalize();
         let a = if unit_w.x.abs() > 0.9 {
-            Vector3::zeros()
+            Vector3::new(0.0, 1.0, 0.0)
         } else {
             Vector3::new(1.0, 0.0, 0.0)
         };

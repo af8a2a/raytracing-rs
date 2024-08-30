@@ -91,7 +91,7 @@ pub fn random_vec_range(min: f32, max: f32) -> Vector3<f32> {
 pub fn random_in_unit_sphere() -> Vector3<f32> {
     loop {
         let p = random_vec_range(-1.0, 1.0);
-        if p.norm() <= 1.0 {
+        if p.norm_squared() <= 1.0 {
             return p;
         }
     }
@@ -99,12 +99,7 @@ pub fn random_in_unit_sphere() -> Vector3<f32> {
   
 
 pub fn random_unit_vector() -> Vector3<f32> {
-    loop {
-        let p = random_vec_range(-1.0, 1.0);
-        if p.norm() <= 1.0 {
-            return p.normalize();
-        }
-    }
+    random_in_unit_sphere().normalize()
 }
 
 pub fn random_on_hemisphere(normal: &Vector3<f32>) -> Vector3<f32> {

@@ -41,7 +41,7 @@ impl ConstMedium {
         let mut rec2;
         match self
             .boundary
-            .hit(ray, &Interval::new(rec1.t + 0.0001, f32::MAX))
+            .hit(ray, &Interval::new(rec1.t + 0.0001, f32::INFINITY))
         {
             Some(rec) => rec2 = rec,
             None => return None,

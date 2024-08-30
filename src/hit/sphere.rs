@@ -1,8 +1,17 @@
-use std::f32::{consts::PI, INFINITY};
+use std::{
+    backtrace::Backtrace,
+    f32::{consts::PI, INFINITY},
+};
 
 use nalgebra::{Vector2, Vector3};
 
-use crate::{aabb::AABB, material::Material, onb::Onb, ray::Ray, util::{random_f32, Interval}};
+use crate::{
+    aabb::AABB,
+    material::Material,
+    onb::Onb,
+    ray::Ray,
+    util::{random_f32, Interval},
+};
 
 use super::HitRecord;
 #[derive(Debug, Clone)]
@@ -77,13 +86,13 @@ impl Sphere {
         }
         let t = root;
         let p = ray.at(t);
-        let normal = (p - center) / self.radius;
-        let outward_normal = (p - center) / self.radius;
+        // assert_eq!((p-self.center).norm()-self.radius<0.0001, true);
+        let outward_normal = (p - self.center) / self.radius;
         let uv = Self::get_sphere_uv(&outward_normal);
         let mut hit_record = HitRecord {
             t,
             p,
-            normal,
+            normal: Vector3::default(),
             front_face: false,
             material: &self.material,
             uv,
@@ -96,12 +105,12 @@ impl Sphere {
         self.center + self.motion.unwrap_or(Vector3::zeros()) * time
     }
 
-    pub fn pdf_value(&self, origin: Vector3<f32>, direction: Vector3<f32>) -> f32 {
+    pub fn pdf_value(&self, origin: &Vector3<f32>, direction: &Vector3<f32>) -> f32 {
         // 这个方法只适用于静止的球体。
 
         if self
             .hit(
-                &Ray::new(origin, direction),
+                &Ray::new(origin.clone(), direction.clone()),
                 &Interval::new(0.001, INFINITY),
             )
             .is_none()
@@ -112,16 +121,31 @@ impl Sphere {
         let cos_theta_max =
             (1.0 - self.radius * self.radius / (self.center - origin).norm_squared()).sqrt();
         let solid_angle = 2.0 * PI * (1.0 - cos_theta_max);
-
+        let res = 1.0 / solid_angle;
+        if res.is_nan() {
+            println!("self.radius:{}", self.radius);
+            println!("self.origin:{}", origin);
+            println!("self.radius * self.radius:{}", self.radius * self.radius);
+            println!(
+                "(self.center - origin).norm_squared():{}",
+                (self.center - origin).norm_squared()
+            );
+            println!(
+                "self.radius * self.radius / (self.center - origin).norm_squared():{}",
+                self.radius * self.radius / (self.center - origin).norm_squared()
+            );
+            // let backtrace=Backtrace::force_capture();
+            // println!("{:#?}",backtrace);
+            panic!()
+        }
         1.0 / solid_angle
     }
-    pub fn random(&self, origin: Vector3<f32>) -> Vector3<f32> {
+    pub fn random(&self, origin: &Vector3<f32>) -> Vector3<f32> {
         let direction = self.center - origin;
         let distance_squared = direction.norm_squared();
         let uvw = Onb::new_from_w(direction);
         uvw.local_v(Self::random_to_sphere(self.radius, distance_squared))
     }
-
 
     fn random_to_sphere(radius: f32, distance_squared: f32) -> Vector3<f32> {
         let r1 = random_f32();
@@ -134,6 +158,4 @@ impl Sphere {
 
         Vector3::new(x, y, z)
     }
-
-
 }
