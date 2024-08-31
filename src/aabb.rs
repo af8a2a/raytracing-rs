@@ -12,7 +12,7 @@ pub struct AABB {
 }
 
 impl AABB {
-    pub fn new(a: Vector3<f32>, b: Vector3<f32>) -> Self {
+    pub fn new(a: Vector3<f64>, b: Vector3<f64>) -> Self {
         let x = Interval::new(a.x.min(b.x), a.x.max(b.x));
         let y = Interval::new(a.y.min(b.y), a.y.max(b.y));
         let z = Interval::new(a.z.min(b.z), a.z.max(b.z));
@@ -90,13 +90,13 @@ impl AABB {
         }
     }
 
-    pub fn add_scalar(&self, scalar: f32) -> Self {
+    pub fn add_scalar(&self, scalar: f64) -> Self {
         let x = self.x.add_scalar(scalar);
         let y = self.y.add_scalar(scalar);
         let z = self.z.add_scalar(scalar);
         Self { x, y, z }
     }
-    pub fn add_vec(&self, vec: Vector3<f32>) -> Self {
+    pub fn add_vec(&self, vec: Vector3<f64>) -> Self {
         let x = self.x.add_scalar(vec.x);
         let y = self.y.add_scalar(vec.y);
         let z = self.z.add_scalar(vec.z);

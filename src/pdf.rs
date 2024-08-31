@@ -1,11 +1,11 @@
-use std::f32::consts::PI;
+use std::f64::consts::PI;
 
 use nalgebra::Vector3;
 
 use crate::{
     hit::Hittable,
     onb::Onb,
-    util::{random_cosine_direction, random_f32, random_range_f32, random_unit_vector},
+    util::{random_cosine_direction, random_f64, random_range_f64, random_unit_vector},
 };
 #[derive(Debug)]
 pub enum PDF<'a> {
@@ -17,7 +17,7 @@ pub enum PDF<'a> {
 }
 
 impl PDF<'_> {
-    pub fn value(&self, direction: &Vector3<f32>) -> f32 {
+    pub fn value(&self, direction: &Vector3<f64>) -> f64 {
         match self {
             PDF::Cosine(pdf) => pdf.value(*direction),
             PDF::Sphere(pdf) => pdf.value(*direction),
@@ -26,7 +26,7 @@ impl PDF<'_> {
             PDF::Mixture(pdf) => pdf.value(direction),
         }
     }
-    pub fn generate(&self) -> Vector3<f32> {
+    pub fn generate(&self) -> Vector3<f64> {
         match self {
             PDF::Cosine(pdf) => pdf.generate(),
             PDF::Sphere(pdf) => pdf.generate(),
@@ -41,10 +41,10 @@ impl PDF<'_> {
 pub struct NonePDF;
 
 impl NonePDF {
-    pub fn value(&self, _direction: Vector3<f32>) -> f32 {
+    pub fn value(&self, _direction: Vector3<f64>) -> f64 {
         0.0
     }
-    pub fn generate(&self) -> Vector3<f32> {
+    pub fn generate(&self) -> Vector3<f64> {
         Vector3::new(1.0, 0.0, 0.0)
     }
 }
@@ -53,11 +53,11 @@ impl NonePDF {
 
 pub struct SpherePdf;
 impl SpherePdf {
-    pub fn value(&self, _direction: Vector3<f32>) -> f32 {
+    pub fn value(&self, _direction: Vector3<f64>) -> f64 {
         1.0 / (4.0 * PI)
     }
 
-    pub fn generate(&self) -> Vector3<f32> {
+    pub fn generate(&self) -> Vector3<f64> {
         random_unit_vector()
     }
 }
@@ -67,7 +67,7 @@ pub struct CosinePdf {
     uvw: Onb,
 }
 impl CosinePdf {
-    pub fn new(w: Vector3<f32>) -> Self {
+    pub fn new(w: Vector3<f64>) -> Self {
         Self {
             uvw: Onb::new_from_w(w),
         }
@@ -75,12 +75,12 @@ impl CosinePdf {
 }
 
 impl CosinePdf {
-    pub fn value(&self, direction: Vector3<f32>) -> f32 {
+    pub fn value(&self, direction: Vector3<f64>) -> f64 {
         let cosine_theta = (direction.normalize()).dot(&self.uvw.w);
         (cosine_theta / PI).max(0.0)
     }
 
-    pub fn generate(&self) -> Vector3<f32> {
+    pub fn generate(&self) -> Vector3<f64> {
         self.uvw.local_v(random_cosine_direction())
     }
 }
@@ -89,20 +89,20 @@ impl CosinePdf {
 
 pub struct HittablePdf<'a> {
     pub objects: &'a Hittable,
-    pub origin: Vector3<f32>,
+    pub origin: Vector3<f64>,
 }
 impl<'a> HittablePdf<'a> {
-    pub fn new(objects: &'a Hittable, origin: Vector3<f32>) -> Self {
+    pub fn new(objects: &'a Hittable, origin: Vector3<f64>) -> Self {
         Self { objects, origin }
     }
 }
 
 impl HittablePdf<'_> {
-    pub fn value(&self, direction: &Vector3<f32>) -> f32 {
+    pub fn value(&self, direction: &Vector3<f64>) -> f64 {
         self.objects.pdf_value(&self.origin, direction)
     }
 
-    pub fn generate(&self) -> Vector3<f32> {
+    pub fn generate(&self) -> Vector3<f64> {
         self.objects.random(&self.origin)
     }
 }
@@ -120,14 +120,14 @@ impl<'a> MixturePdf<'a> {
 }
 
 impl MixturePdf<'_> {
-    fn value(&self, direction: &Vector3<f32>) -> f32 {
+    fn value(&self, direction: &Vector3<f64>) -> f64 {
         let lhs = self.p[0].value(&direction);
         let rhs = self.p[1].value(&direction);
         (lhs + rhs) / 2.0
     }
 
-    fn generate(&self) -> Vector3<f32> {
-        if random_f32() < 0.5 {
+    fn generate(&self) -> Vector3<f64> {
+        if random_f64() < 0.5 {
             self.p[0].generate()
         } else {
             self.p[1].generate()

@@ -4,20 +4,20 @@ use nalgebra::Vector3;
 
 #[derive(Default,Debug)]
 pub struct Onb {
-    pub u: Vector3<f32>,
-    pub v: Vector3<f32>,
-    pub w: Vector3<f32>,
+    pub u: Vector3<f64>,
+    pub v: Vector3<f64>,
+    pub w: Vector3<f64>,
 }
 
 impl Onb {
-    pub fn local(&self, a: f32, b: f32, c: f32) -> Vector3<f32> {
+    pub fn local(&self, a: f64, b: f64, c: f64) -> Vector3<f64> {
         a * self.u + b * self.v + c * self.w
     }
-    pub fn local_v(&self, a: Vector3<f32>) -> Vector3<f32> {
+    pub fn local_v(&self, a: Vector3<f64>) -> Vector3<f64> {
         a.x * self.u + a.y * self.v + a.z * self.w
     }
 
-    pub fn new_from_w(w: Vector3<f32>) -> Self {
+    pub fn new_from_w(w: Vector3<f64>) -> Self {
         let unit_w = w.normalize();
         let a = if unit_w.x.abs() > 0.9 {
             Vector3::new(0.0, 1.0, 0.0)
@@ -31,7 +31,7 @@ impl Onb {
 }
 
 impl Index<usize> for Onb {
-    type Output = Vector3<f32>;
+    type Output = Vector3<f64>;
 
     fn index(&self, i: usize) -> &Self::Output {
         match i {

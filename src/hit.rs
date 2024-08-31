@@ -7,16 +7,17 @@ use nalgebra::{Vector2, Vector3};
 use crate::{aabb::AABB, bvh::BVHNode, material::Material, ray::Ray, scene::Scene, util::Interval};
 #[derive(Debug, Clone)]
 pub struct HitRecord<'a> {
-    pub t: f32,
-    pub p: Vector3<f32>,
-    pub normal: Vector3<f32>,
+    pub t: f64,
+    pub p: Vector3<f64>,
+    pub normal: Vector3<f64>,
     pub front_face: bool,
-    pub uv: Vector2<f32>,
+    pub uv: Vector2<f64>,
     pub material: &'a Material,
+    pub trace:bool,
 }
 
 impl HitRecord<'_> {
-    pub fn set_face_normal(&mut self, ray: &Ray, outward_normal: &Vector3<f32>) {
+    pub fn set_face_normal(&mut self, ray: &Ray, outward_normal: &Vector3<f64>) {
         self.front_face = ray.direction.dot(&outward_normal) < 0.0;
         self.normal = if self.front_face {
             *outward_normal
@@ -60,7 +61,7 @@ impl Hittable {
         }
     }
 
-    pub fn pdf_value(&self, origin: &Vector3<f32>, direction: &Vector3<f32>) -> f32 {
+    pub fn pdf_value(&self, origin: &Vector3<f64>, direction: &Vector3<f64>) -> f64 {
         match self {
             Hittable::Quad(obj) => obj.pdf_value(&origin, &direction),
             Hittable::Sphere(obj) => obj.pdf_value(&origin, &direction),
@@ -71,7 +72,7 @@ impl Hittable {
             Hittable::ConstantMedium(_) => todo!(),
         }
     }
-    pub fn  random(&self, origin: &Vector3<f32>) -> Vector3<f32> {
+    pub fn  random(&self, origin: &Vector3<f64>) -> Vector3<f64> {
         match self {
             Hittable::Quad(obj) => obj.random(&origin),
             Hittable::Sphere(obj) => obj.random(&origin),

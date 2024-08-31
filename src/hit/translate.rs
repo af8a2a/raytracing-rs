@@ -6,13 +6,13 @@ use super::{HitRecord, Hittable};
 #[derive(Debug, Clone)]
 
 pub struct Translate {
-    pub offset: Vector3<f32>,
+    pub offset: Vector3<f64>,
     pub object: Box<Hittable>,
     pub bbox: AABB,
 }
 
 impl Translate {
-    pub fn new(object: Hittable, offset: Vector3<f32>) -> Self {
+    pub fn new(object: Hittable, offset: Vector3<f64>) -> Self {
         let bbox = object.bbox().clone().add_vec(offset);
         Self {
             offset,
@@ -39,28 +39,28 @@ impl Translate {
 #[derive(Debug, Clone)]
 
 pub struct RotateY {
-    pub sin_theta: f32,
-    pub cos_theta: f32,
+    pub sin_theta: f64,
+    pub cos_theta: f64,
     pub bbox: AABB,
     pub object: Box<Hittable>,
 }
 
 impl RotateY {
-    pub fn new(object: Hittable, angle: f32) -> Self {
+    pub fn new(object: Hittable, angle: f64) -> Self {
         let radians = angle.to_radians();
         let sin_theta = radians.sin();
         let cos_theta = radians.cos();
         let bbox = object.bbox();
 
-        let mut min = Vector3::new(f32::INFINITY, f32::INFINITY, f32::INFINITY);
-        let mut max = Vector3::new(f32::NEG_INFINITY, f32::NEG_INFINITY, f32::NEG_INFINITY);
+        let mut min = Vector3::new(f64::INFINITY, f64::INFINITY, f64::INFINITY);
+        let mut max = Vector3::new(f64::NEG_INFINITY, f64::NEG_INFINITY, f64::NEG_INFINITY);
 
         for i in 0..2 {
             for j in 0..2 {
                 for k in 0..2 {
-                    let x = i as f32 * bbox.x.max + (1 - i) as f32 * bbox.x.min;
-                    let y = j as f32 * bbox.y.max + (1 - j) as f32 * bbox.y.min;
-                    let z = k as f32 * bbox.z.max + (1 - k) as f32 * bbox.z.min;
+                    let x = i as f64 * bbox.x.max + (1 - i) as f64 * bbox.x.min;
+                    let y = j as f64 * bbox.y.max + (1 - j) as f64 * bbox.y.min;
+                    let z = k as f64 * bbox.z.max + (1 - k) as f64 * bbox.z.min;
 
                     let newx = cos_theta * x + sin_theta * z;
                     let newz = -sin_theta * x + cos_theta * z;

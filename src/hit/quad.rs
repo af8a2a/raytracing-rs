@@ -5,26 +5,26 @@ use crate::{
     material::Material,
     ray::Ray,
     scene::Scene,
-    util::{random_f32, Interval},
+    util::{random_f64, Interval},
 };
 
 use super::HitRecord;
 #[derive(Debug, Clone)]
 
 pub struct Quad {
-    pub q: Vector3<f32>,
-    pub u: Vector3<f32>,
-    pub v: Vector3<f32>,
-    pub normal: Vector3<f32>,
-    pub d: f32,
-    pub w: Vector3<f32>,
+    pub q: Vector3<f64>,
+    pub u: Vector3<f64>,
+    pub v: Vector3<f64>,
+    pub normal: Vector3<f64>,
+    pub d: f64,
+    pub w: Vector3<f64>,
     pub material: Material,
     pub aabb: AABB,
-    pub area: f32,
+    pub area: f64,
 }
 
 impl Quad {
-    pub fn new(q: Vector3<f32>, u: Vector3<f32>, v: Vector3<f32>, material: Material) -> Self {
+    pub fn new(q: Vector3<f64>, u: Vector3<f64>, v: Vector3<f64>, material: Material) -> Self {
         let n = u.cross(&v);
         let normal = n.normalize();
 
@@ -75,6 +75,7 @@ impl Quad {
                     t,
                     uv,
                     front_face: true,
+                    trace: false,
                 };
                 rec.set_face_normal(ray, &self.normal);
                 Some(rec)
@@ -86,7 +87,7 @@ impl Quad {
     /// Given the hit point in plane coordinates, return false if it is outside the
     /// primitive, otherwise set the hit record UV coordinates and return true.
 
-    pub fn is_interior(&self, u: f32, v: f32) -> Option<Vector2<f32>> {
+    pub fn is_interior(&self, u: f64, v: f64) -> Option<Vector2<f64>> {
         // 给定平面坐标中的击中点，如果它在基元之外，则返回false，否则设置击中记录的UV坐标并返回true。
         if !(0.0..=1.0).contains(&u) || !(0.0..=1.0).contains(&v) {
             return None;
@@ -94,10 +95,10 @@ impl Quad {
 
         Some(Vector2::new(u, v))
     }
-    pub fn pdf_value(&self, origin: &Vector3<f32>, direction: &Vector3<f32>) -> f32 {
+    pub fn pdf_value(&self, origin: &Vector3<f64>, direction: &Vector3<f64>) -> f64 {
         match self.hit(
             &Ray::new(origin.clone(), direction.clone()),
-            &Interval::new(0.00001, f32::INFINITY),
+            &Interval::new(0.00001, f64::INFINITY),
         ) {
             Some(rec) => {
                 let distance_squared = rec.t * rec.t * direction.norm_squared();
@@ -109,13 +110,13 @@ impl Quad {
             None => 0.0,
         }
     }
-    pub fn random(&self, origin: &Vector3<f32>) -> Vector3<f32> {
-        let p = self.q + (random_f32() * self.u) + (random_f32() * self.v);
+    pub fn random(&self, origin: &Vector3<f64>) -> Vector3<f64> {
+        let p = self.q + (random_f64() * self.u) + (random_f64() * self.v);
         p - origin
     }
 }
 
-pub fn box_scene(a: Vector3<f32>, b: Vector3<f32>, mat: Material) -> Scene {
+pub fn box_scene(a: Vector3<f64>, b: Vector3<f64>, mat: Material) -> Scene {
     let mut sides = Scene::default();
 
     let min = Vector3::new(a.x.min(b.x), a.y.min(b.y), a.z.min(b.z));

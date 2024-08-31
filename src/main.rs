@@ -1,4 +1,4 @@
-use std::f32::consts::PI;
+use std::f64::consts::PI;
 
 use image::{Pixel, Rgb, RgbImage};
 use nalgebra::Vector3;
@@ -97,7 +97,7 @@ fn cornell_box() {
     cam.aspect_ratio = 1.0;
     cam.image_width = 400;
     cam.sample_per_pixel =500;
-    cam.depth = 10;
+    cam.depth = 50;
     cam.background = Vector3::default();
 
     cam.vfov = 40.0;
