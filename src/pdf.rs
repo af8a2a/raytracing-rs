@@ -115,8 +115,6 @@ pub struct MixturePdf<'a> {
 
 impl<'a> MixturePdf<'a> {
     pub fn new(p0: &'a PDF, p1: &'a PDF) -> Self {
-        // println!("p0: {:#?}", p0);
-        // println!("p1: {:#?}", p1);
         Self { p: [p0, p1] }
     }
 }

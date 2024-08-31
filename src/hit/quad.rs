@@ -48,17 +48,16 @@ impl Quad {
     }
 
     pub fn hit(&self, ray: &crate::ray::Ray, interval: &Interval) -> Option<HitRecord> {
-        let mut record = None;
         let denom = self.normal.dot(&ray.direction);
 
         if denom.abs() < 1e-8 {
-            return record;
+            return None;
         }
 
         let t = (self.d - self.normal.dot(&ray.origin)) / denom;
 
         if !interval.contains(t) {
-            return record;
+            return None;
         }
 
         let intersection = ray.at(t);

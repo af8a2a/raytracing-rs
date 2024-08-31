@@ -98,6 +98,11 @@ impl Sphere {
             uv,
         };
         hit_record.set_face_normal(ray, &outward_normal);
+
+        if (p-self.center).norm() < self.radius {
+            println!("hit sphere at {:?} with normal {:?}", p, outward_normal);
+        }
+
         Some(hit_record)
     }
 
@@ -122,22 +127,22 @@ impl Sphere {
             (1.0 - self.radius * self.radius / (self.center - origin).norm_squared()).sqrt();
         let solid_angle = 2.0 * PI * (1.0 - cos_theta_max);
         let res = 1.0 / solid_angle;
-        if res.is_nan() {
-            println!("self.radius:{}", self.radius);
-            println!("self.origin:{}", origin);
-            println!("self.radius * self.radius:{}", self.radius * self.radius);
-            println!(
-                "(self.center - origin).norm_squared():{}",
-                (self.center - origin).norm_squared()
-            );
-            println!(
-                "self.radius * self.radius / (self.center - origin).norm_squared():{}",
-                self.radius * self.radius / (self.center - origin).norm_squared()
-            );
-            // let backtrace=Backtrace::force_capture();
-            // println!("{:#?}",backtrace);
-            panic!()
-        }
+        // if res.is_nan() {
+        //     println!("self.radius:{}", self.radius);
+        //     println!("self.origin:{}", origin);
+        //     println!("self.radius * self.radius:{}", self.radius * self.radius);
+        //     println!(
+        //         "(self.center - origin).norm_squared():{}",
+        //         (self.center - origin).norm_squared()
+        //     );
+        //     println!(
+        //         "self.radius * self.radius / (self.center - origin).norm_squared():{}",
+        //         self.radius * self.radius / (self.center - origin).norm_squared()
+        //     );
+        //     // let backtrace=Backtrace::force_capture();
+        //     // println!("{:#?}",backtrace);
+        //     panic!()
+        // }
         1.0 / solid_angle
     }
     pub fn random(&self, origin: &Vector3<f32>) -> Vector3<f32> {

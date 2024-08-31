@@ -55,9 +55,9 @@ impl Material {
             Material::DiffuseLight(light) => light.emitted(uv, p, rec),
         }
     }
-    pub fn pdf(&self, ray: &Ray, scattered: &Ray, rec: &HitRecord) -> f32 {
+    pub fn scattering_pdf(&self, ray: &Ray, scattered: &Ray, rec: &HitRecord) -> f32 {
         match self {
-            Material::Diffuse(lambert) => lambert.pdf(ray, scattered, rec),
+            Material::Diffuse(lambert) => lambert.scattering_pdf(ray, scattered, rec),
             // Material::Metal(_) => 0.0,
             // Material::Dielectric(_) => 0.0,
             // Material::DiffuseLight(_) => 0.0,
@@ -93,7 +93,7 @@ impl Lambertian {
         Vector3::zeros()
     }
 
-    pub fn pdf(&self, _ray: &Ray, scattered: &Ray, rec: &HitRecord) -> f32 {
+    pub fn scattering_pdf(&self, _ray: &Ray, scattered: &Ray, rec: &HitRecord) -> f32 {
         let cos_theta = rec.normal.dot(&scattered.direction.normalize());
         if cos_theta < 0.0 {
             0.0
@@ -115,7 +115,7 @@ impl Metal {
     pub fn scatter(&self, ray: &Ray, rec: &HitRecord) -> Option<ScatterRecord> {
         let mut srec = ScatterRecord::default();
         srec.attenuation = self.albedo;
-        srec.skip_pdf = false;
+        srec.skip_pdf = true;
         let reflected = reflect(&ray.direction.normalize(), &rec.normal);
         srec.skip_pdf_ray = Ray::new_with_time(
             rec.p,
@@ -142,7 +142,7 @@ impl Dielectric {
     pub fn scatter(&self, ray: &Ray, rec: &HitRecord) -> Option<ScatterRecord> {
         let mut srec = ScatterRecord::default();
         srec.attenuation = Vector3::new(1.0, 1.0, 1.0);
-        srec.skip_pdf = false;
+        srec.skip_pdf = true;
         let refraction_ratio = if rec.front_face {
             1.0 / self.refraction_index
         } else {

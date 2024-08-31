@@ -14,8 +14,6 @@ use pbrt_rs::{
     },
     material::{Dielectric, DiffuseLight, Lambertian, Material, Metal},
     scene::Scene,
-    texture::{CheckerTexture, ImageTexture, NoiseTexture, SolidColor, Texture},
-    util::{random_f32, random_vec, random_vec_range},
 };
 
 fn cornell_box() {
@@ -98,7 +96,7 @@ fn cornell_box() {
 
     cam.aspect_ratio = 1.0;
     cam.image_width = 400;
-    cam.sample_per_pixel = 100;
+    cam.sample_per_pixel =50;
     cam.depth = 10;
     cam.background = Vector3::default();
 

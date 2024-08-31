@@ -4,7 +4,7 @@ use std::{
     ops::Add,
 };
 
-use image::{Rgb, RgbImage};
+use image::{ImageFormat, Rgb, RgbImage};
 use nalgebra::{clamp, Vector3};
 use rayon::iter::ParallelIterator;
 
@@ -39,9 +39,9 @@ fn color_to_rgb(color: Vector3<f32>, sample_per_pixel: f32) -> Rgb<u8> {
     let b = scale * b;
 
     Rgb([
-        (256.0 * f32::clamp(linear_to_gamma(color.x), 0.0, 0.999)) as u8,
-        (256.0 * f32::clamp(linear_to_gamma(color.y), 0.0, 0.999)) as u8,
-        (256.0 * f32::clamp(linear_to_gamma(color.z), 0.0, 0.999)) as u8,
+        (256.0 * f32::clamp(linear_to_gamma(r), 0.0, 0.999)) as u8,
+        (256.0 * f32::clamp(linear_to_gamma(g), 0.0, 0.999)) as u8,
+        (256.0 * f32::clamp(linear_to_gamma(b), 0.0, 0.999)) as u8,
     ])
 }
 
@@ -155,7 +155,7 @@ impl Camera {
 
         let mut image = RgbImage::new(width as u32, height as u32);
 
-        image.enumerate_pixels_mut().for_each(|(i, j, pixel)| {
+        image.par_enumerate_pixels_mut().for_each(|(i, j, pixel)| {
             let mut color = Vector3::new(0.0, 0.0, 0.0);
             for s_j in 0..self.sqrt_spp {
                 for s_i in 0..self.sqrt_spp {
@@ -222,19 +222,10 @@ impl Camera {
 
                         let pdf = mixed_pdf.value(&scattered.direction);
 
-                        let scattering_pdf = mat.pdf(r, &scattered, &rec);
+                        let scattering_pdf = mat.scattering_pdf(r, &scattered, &rec);
                         let sample_color = self.ray_color(&scattered, depth - 1, world, lights);
-                        if pdf.is_nan() || scattering_pdf.is_nan() {
-                            println!("pdf: {}, scattering_pdf: {}", pdf, scattering_pdf);
-                            println!("pdf: {}, scattering_pdf: {}", pdf, scattering_pdf);
-
-                        }
-                        // println!("scattering_pdf: {:#?}", scattering_pdf);
-                        // println!("pdf: {:#?}", pdf);
-
                         let color_from_scatter =
                             (srec.attenuation.component_mul(&sample_color) * scattering_pdf) / pdf;
-                        // println!("color_from_scatter: {:#?}", color_from_scatter);
 
                         color_from_emission + color_from_scatter
                     }

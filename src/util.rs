@@ -10,12 +10,12 @@ pub struct Interval {
 }
 
 pub const EMPTY_INTERVAL: Interval = Interval {
-    min: f32::MAX,
-    max: f32::MIN,
+    min: f32::INFINITY,
+    max: f32::NEG_INFINITY,
 };
 pub const UNIVERSE_INTERVAL: Interval = Interval {
-    min: f32::MIN,
-    max: f32::MAX,
+    min: f32::NEG_INFINITY,
+    max: f32::INFINITY,
 };
 
 impl Interval {
@@ -56,7 +56,7 @@ impl Interval {
 }
 impl Default for Interval {
     fn default() -> Self {
-        Self::new(f32::MAX, f32::MIN)
+        Self::new(f32::INFINITY, f32::NEG_INFINITY)
     }
 }
 
@@ -130,7 +130,7 @@ pub fn refract(uv: &Vector3<f32>, n: &Vector3<f32>, etai_over_etat: f32) -> Vect
 pub fn reflectance(cosine: f32, refraction_index: f32) -> f32 {
     let r0 = (1.0 - refraction_index) / (1.0 + refraction_index);
     let r0 = r0 * r0;
-    r0 + (1.0 - r0) * ((1.0 - cosine).powi(5))
+    r0 + (1.0 - r0) * (1.0 - cosine).powf(5.0)
 }
 
 pub fn random_int(min: i32, max: i32) -> i32 {
