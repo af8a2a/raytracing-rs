@@ -155,7 +155,7 @@ impl Camera {
 
         let mut image = RgbImage::new(width as u32, height as u32);
 
-        image.par_enumerate_pixels_mut().for_each(|(i, j, pixel)| {
+        image.enumerate_pixels_mut().for_each(|(i, j, pixel)| {
             let mut color = Vector3::new(0.0, 0.0, 0.0);
             for s_j in 0..self.sqrt_spp {
                 for s_i in 0..self.sqrt_spp {

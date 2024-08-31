@@ -96,7 +96,7 @@ fn cornell_box() {
 
     cam.aspect_ratio = 1.0;
     cam.image_width = 400;
-    cam.sample_per_pixel =50;
+    cam.sample_per_pixel =500;
     cam.depth = 10;
     cam.background = Vector3::default();
 

@@ -104,7 +104,6 @@ impl Quad {
                 let cosine = ((direction.dot(&rec.normal)) / direction.norm()).abs();
                 // println!("self.area: {:?}", self.area);
                 let res = distance_squared / (cosine * self.area);
-                assert_eq!(res.is_nan(), false);
                 res
             }
             None => 0.0,

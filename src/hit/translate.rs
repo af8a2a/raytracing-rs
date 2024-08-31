@@ -95,11 +95,19 @@ impl RotateY {
 
         match self.object.hit(&rotated_r, interval) {
             Some(mut rec) => {
-                rec.p.x = self.cos_theta * rec.p.x + self.sin_theta * rec.p.z;
-                rec.p.z = -self.sin_theta * rec.p.x + self.cos_theta * rec.p.z;
 
-                rec.normal.x = self.cos_theta * rec.normal.x + self.sin_theta * rec.normal.z;
-                rec.normal.z = -self.sin_theta * rec.normal.x + self.cos_theta * rec.normal.z;
+                let mut p = rec.p;
+                p[0] = self.cos_theta * rec.p[0] + self.sin_theta * rec.p[2];
+                p[2] = -self.sin_theta * rec.p[0] + self.cos_theta * rec.p[2];
+
+                // 将法线从对象空间变换到世界空间
+                let mut normal = rec.normal;
+                normal[0] = self.cos_theta * rec.normal[0] + self.sin_theta * rec.normal[2];
+                normal[2] = -self.sin_theta * rec.normal[0] + self.cos_theta * rec.normal[2];
+
+
+                rec.p = p;
+                rec.normal = normal;
                 Some(rec)
             }
             None => None,

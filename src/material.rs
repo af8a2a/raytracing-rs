@@ -83,7 +83,6 @@ impl Lambertian {
     }
     pub fn scatter(&self, _ray: &Ray, rec: &HitRecord) -> Option<ScatterRecord> {
         let mut srec: ScatterRecord<'_> = ScatterRecord::default();
-        // println!("normal: {:?}", rec.normal);
         srec.attenuation = self.albedo.value(&rec.uv, &rec.p);
         srec.pdf = PDF::Cosine(CosinePdf::new(rec.normal));
         srec.skip_pdf = false;
