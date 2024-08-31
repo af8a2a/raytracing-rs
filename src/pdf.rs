@@ -120,13 +120,13 @@ impl<'a> MixturePdf<'a> {
 }
 
 impl MixturePdf<'_> {
-    fn value(&self, direction: &Vector3<f64>) -> f64 {
+    pub fn value(&self, direction: &Vector3<f64>) -> f64 {
         let lhs = self.p[0].value(&direction);
         let rhs = self.p[1].value(&direction);
         (lhs + rhs) / 2.0
     }
 
-    fn generate(&self) -> Vector3<f64> {
+    pub fn generate(&self) -> Vector3<f64> {
         if random_f64() < 0.5 {
             self.p[0].generate()
         } else {

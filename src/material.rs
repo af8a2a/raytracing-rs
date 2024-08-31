@@ -82,7 +82,7 @@ impl Lambertian {
         }
     }
     pub fn scatter(&self, _ray: &Ray, rec: &HitRecord) -> Option<ScatterRecord> {
-        let mut srec: ScatterRecord<'_> = ScatterRecord::default();
+        let mut srec = ScatterRecord::default();
         srec.attenuation = self.albedo.value(&rec.uv, &rec.p);
         srec.pdf = PDF::Cosine(CosinePdf::new(rec.normal));
         srec.skip_pdf = false;
@@ -153,13 +153,14 @@ impl Dielectric {
         let sin_theta = (1.0 - cos_theta * cos_theta).sqrt();
 
         let cannot_refract = refraction_ratio * sin_theta > 1.0;
-        let direction = if cannot_refract || reflectance(cos_theta, refraction_ratio) > random_f64()
+        let direction = if cannot_refract
+            || reflectance(cos_theta, refraction_ratio) > random_f64()
         {
-            reflect(&unit_direction, &rec.normal)
+            reflect(&unit_direction,& rec.normal)
         } else {
             refract(&unit_direction, &rec.normal, refraction_ratio)
         };
-        // let direction=reflect(&unit_direction, &rec.normal)
+
         srec.skip_pdf_ray = Ray::new_with_time(rec.p, direction, ray.time);
         Some(srec)
     }

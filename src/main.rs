@@ -96,13 +96,13 @@ fn cornell_box() {
 
     cam.aspect_ratio = 1.0;
     cam.image_width = 400;
-    cam.sample_per_pixel =500;
-    cam.depth = 50;
+    cam.samples_per_pixel = 300;
+    cam.max_depth = 10;
     cam.background = Vector3::default();
 
     cam.vfov = 40.0;
-    cam.look_from = Vector3::new(278.0, 278.0, -800.0);
-    cam.look_at = Vector3::new(278.0, 278.0, 0.0);
+    cam.lookfrom = Vector3::new(278.0, 278.0, -800.0);
+    cam.lookat = Vector3::new(278.0, 278.0, 0.0);
     cam.vup = Vector3::new(0.0, 1.0, 0.0);
 
     cam.defocus_angle = 0.0;

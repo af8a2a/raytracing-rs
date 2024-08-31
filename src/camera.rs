@@ -13,8 +13,64 @@ use crate::{
     pdf::{HittablePdf, MixturePdf},
     ray::Ray,
     scene::Scene,
-    util::{random_f64, random_unit_vector, sample_square, Interval},
+    util::{random_f64, random_in_unit_sphere, random_unit_vector, sample_square, Interval},
 };
+
+pub struct Camera {
+    pub aspect_ratio: f64,        // Ratio of image width over height
+    pub image_width: usize,       // Rendered image width in pixel count
+    pub samples_per_pixel: usize, // Count of random samples for each pixel
+    pub max_depth: usize,         // Maximum number of ray bounces into scene
+    pub background: Vector3<f64>, // Background color for rays that miss
+    pub vfov: f64,                // Vertical field of view in degrees
+    pub lookfrom: Vector3<f64>,   // Camera origin
+    pub lookat: Vector3<f64>,     // Point camera is looking at
+    pub vup: Vector3<f64>,        // Camera up vector
+    pub defocus_angle: f64,       // Defocus blur angle
+    pub focus_dist: f64,          // Focus distance
+    image_height: usize,          // Rendered image height
+    sqrt_spp: usize,              // Square root of samples per pixel
+    recip_sqrt_spp: f64,          // Reciprocal of square root of samples per pixel
+    center: Vector3<f64>,         // Camera center
+    pixel00_loc: Vector3<f64>,    // Location of pixel 0, 0
+    pixel_delta_u: Vector3<f64>,  // Offset to pixel to the right
+    pixel_delta_v: Vector3<f64>,  // Offset to pixel below
+    u: Vector3<f64>,              // Camera horizontal axis
+    v: Vector3<f64>,              // Camera vertical axis
+    w: Vector3<f64>,              // Camera forward axis
+    defocus_disk_u: Vector3<f64>, // Defocus disk horizontal axis
+    defocus_disk_v: Vector3<f64>, // Defocus disk vertical axis
+}
+
+impl Default for Camera {
+    fn default() -> Self {
+        Self {
+            aspect_ratio: 1.0,
+            image_width: 100,
+            samples_per_pixel: 10,
+            max_depth: 10,
+            background: Vector3::default(),
+            vfov: 90.0,
+            lookfrom: Vector3::new(0.0, 0.0, -1.0),
+            lookat: Vector3::new(0.0, 0.0, 0.0),
+            vup: Vector3::new(0.0, 1.0, 0.0),
+            defocus_angle: 0.0,
+            focus_dist: 10.0,
+            image_height: 0,
+            sqrt_spp: 10.0_f64.sqrt() as usize,
+            recip_sqrt_spp: 1.0 / (10.0_f64.sqrt()),
+            center: Vector3::default(),
+            pixel00_loc: Vector3::default(),
+            pixel_delta_u: Vector3::default(),
+            pixel_delta_v: Vector3::default(),
+            u: Vector3::default(),
+            v: Vector3::default(),
+            w: Vector3::default(),
+            defocus_disk_u: Vector3::default(),
+            defocus_disk_v: Vector3::default(),
+        }
+    }
+}
 
 fn linear_to_gamma(color: f64) -> f64 {
     if color > 0.0 {
@@ -45,83 +101,67 @@ fn color_to_rgb(color: Vector3<f64>, sample_per_pixel: f64) -> Rgb<u8> {
     ])
 }
 
-pub struct Camera {
-    pub aspect_ratio: f64, //aka fov
-    pub image_width: u32,
-    image_height: u32,
-    center: Vector3<f64>,
-    pixel00_loc: Vector3<f64>,
-    pixel_delta_u: Vector3<f64>,
-    pixel_delta_v: Vector3<f64>,
-    pub sample_per_pixel: u32,
-    pub depth: i32,
-
-    pub vfov: f64,
-    pub look_from: Vector3<f64>,
-    pub look_at: Vector3<f64>,
-    pub vup: Vector3<f64>,
-
-    pub defocus_angle: f64,
-    pub focus_dist: f64,
-    defocus_disk_u: Vector3<f64>,
-    defocus_disk_v: Vector3<f64>,
-
-    pub background: Vector3<f64>,
-
-    u: Vector3<f64>,
-    v: Vector3<f64>,
-    w: Vector3<f64>,
-
-    sqrt_spp: u32,
-    recip_sqrt_spp: f64,
-}
-impl Default for Camera {
-    fn default() -> Self {
-        Self {
-            aspect_ratio: 1.0,
-            image_width: 100,
-            sample_per_pixel: 10,
-            depth: 10,
-            vfov: 90.0,
-            look_from: Vector3::new(0.0, 0.0, -1.0),
-            look_at: Vector3::new(0.0, 0.0, 0.0),
-            vup: Vector3::new(0.0, 1.0, 0.0),
-            defocus_angle: 0.0,
-            focus_dist: 10.0,
-            image_height: 0,
-            center: Vector3::zeros(),
-            pixel00_loc: Vector3::zeros(),
-            pixel_delta_u: Vector3::zeros(),
-            pixel_delta_v: Vector3::zeros(),
-            u: Vector3::zeros(),
-            v: Vector3::zeros(),
-            w: Vector3::zeros(),
-            defocus_disk_u: Vector3::zeros(),
-            defocus_disk_v: Vector3::zeros(),
-            background: Vector3::new(1.0, 1.0, 1.0),
-            sqrt_spp: 10.0_f64.sqrt() as u32,
-            recip_sqrt_spp: 1.0 / (10.0_f64.sqrt()),
-        }
-    }
-}
-
 impl Camera {
-    pub fn initialize(&mut self) {
-        self.image_height = (self.image_width as f64 / self.aspect_ratio) as u32;
+    pub fn render(&mut self, world: Hittable, lights: Hittable) {
+        self.initialize();
+
+        // println!("P3\n{} {}\n255", self.image_width, self.image_height);
+        // let stdout = std::io::stdout();
+        let width = self.image_width;
+        let height = self.image_height;
+
+        let mut image = RgbImage::new(width as u32, height as u32);
+        image.par_enumerate_pixels_mut().for_each(|(i, j, pixel)| {
+            let mut color = Vector3::new(0.0, 0.0, 0.0);
+            for s_j in 0..self.sqrt_spp {
+                for s_i in 0..self.sqrt_spp {
+                    let ray = self.get_ray(i as i32, j as i32, s_i as i32, s_j as i32);
+                    color += self.ray_color(&ray, self.max_depth, &world, &lights);
+                }
+            }
+            *pixel = color_to_rgb(color, self.samples_per_pixel as f64);
+        });
+        image.save("image.png").expect("Failed to save image");
+
+        // for j in 0..self.image_height {
+        //     eprintln!("\rScanlines remaining: {}", self.image_height - j);
+        //     for i in 0..self.image_width {
+        //         let mut pixel_color = Color::default();
+        //         for s_j in 0..self.sqrt_spp {
+        //             for s_i in 0..self.sqrt_spp {
+        //                 let r = self.get_ray(i as i32, j as i32, s_i as i32, s_j as i32);
+        //                 pixel_color += self.ray_color(&r, self.max_depth, world, lights);
+        //             }
+        //         }
+        //         pixel_color
+        //             .write_color(&mut stdout.lock(), self.samples_per_pixel)
+        //             .unwrap();
+        //     }
+        // }
+
+        eprintln!("\nDone.");
+    }
+
+    fn initialize(&mut self) {
+        self.image_height = (self.image_width as f64 / self.aspect_ratio) as usize;
         self.image_height = if self.image_height < 1 {
             1
         } else {
             self.image_height
         };
+        self.sqrt_spp = (self.samples_per_pixel as f64).sqrt() as usize;
+        self.recip_sqrt_spp = 1.0 / (self.sqrt_spp as f64);
 
-        self.center = self.look_from;
+        self.center = self.lookfrom;
 
+        // 确定视口尺寸。
         let theta = self.vfov.to_radians();
         let h = (theta / 2.0).tan();
         let viewport_height = 2.0 * h * self.focus_dist;
         let viewport_width = viewport_height * (self.image_width as f64 / self.image_height as f64);
 
-        self.w = (self.look_from - self.look_at).normalize();
+        // 计算相机坐标系的 u,v,w 单位基向量。
+        self.w = (self.lookfrom - self.lookat).normalize();
         self.u = (self.vup.cross(&self.w)).normalize();
         self.v = self.w.cross(&self.u);
 
@@ -139,44 +179,9 @@ impl Camera {
         self.pixel00_loc = viewport_upper_left + 0.5 * (self.pixel_delta_u + self.pixel_delta_v);
 
         // 计算相机失焦盘的基向量。
-        let defocus_radius = self.focus_dist * ((self.defocus_angle / 2.0).to_radians()).tan();
+        let defocus_radius = self.focus_dist * (self.defocus_angle / 2.0).to_radians().tan();
         self.defocus_disk_u = self.u * defocus_radius;
         self.defocus_disk_v = self.v * defocus_radius;
-
-        self.sqrt_spp = (self.sample_per_pixel as f64).sqrt() as u32;
-        self.recip_sqrt_spp = 1.0 / self.sqrt_spp as f64;
-    }
-
-    pub fn render(&mut self, world: Hittable, lights: Hittable) {
-        self.initialize();
-
-        let width = self.image_width;
-        let height = self.image_height;
-
-        let mut image = RgbImage::new(width as u32, height as u32);
-        //debug
-        // image.enumerate_pixels_mut().for_each(|(i, j, pixel)| {
-        //     let mut color = Vector3::new(0.0, 0.0, 0.0);
-        //     for s_j in 0..self.sqrt_spp {
-        //         for s_i in 0..self.sqrt_spp {
-        //             let ray = self.get_ray(i as i32, j as i32, s_i as i32, s_j as i32);
-        //             color += self.ray_color(&ray, self.depth, &world, &lights);
-        //         }
-        //     }
-        //     *pixel = color_to_rgb(color, self.sample_per_pixel as f64);
-        // });
-        image.par_enumerate_pixels_mut().for_each(|(i, j, pixel)| {
-            let mut color = Vector3::new(0.0, 0.0, 0.0);
-            for s_j in 0..self.sqrt_spp {
-                for s_i in 0..self.sqrt_spp {
-                    let ray = self.get_ray(i as i32, j as i32, s_i as i32, s_j as i32);
-                    color += self.ray_color(&ray, self.depth, &world, &lights);
-                }
-            }
-            *pixel = color_to_rgb(color, self.sample_per_pixel as f64);
-        });
-
-        image.save("image.png").expect("Failed to save image");
     }
 
     fn get_ray(&self, i: i32, j: i32, s_i: i32, s_j: i32) -> Ray {
@@ -196,17 +201,36 @@ impl Camera {
         Ray::new_with_time(ray_origin, ray_direction, ray_time)
     }
 
-    fn ray_color(&self, r: &Ray, depth: i32, world: &Hittable, lights: &Hittable) -> Vector3<f64> {
+    fn pixel_sample_square(&self, s_i: i32, s_j: i32) -> Vector3<f64> {
+        // Returns a random point in the square surrounding a pixel at the origin.
+        let px = -0.5 + self.recip_sqrt_spp * (s_i as f64 + random_f64());
+        let py = -0.5 + self.recip_sqrt_spp * (s_j as f64 + random_f64());
+        px * self.pixel_delta_u + py * self.pixel_delta_v
+    }
+
+    fn defocus_disk_sample(&self) -> Vector3<f64> {
+        // Returns a random point in the defocus disk.
+        let p = random_in_unit_sphere();
+        self.center + p.x * self.defocus_disk_u + p.y * self.defocus_disk_v
+    }
+
+    fn ray_color(
+        &self,
+        r: &Ray,
+        depth: usize,
+        world: &Hittable,
+        lights: &Hittable,
+    ) -> Vector3<f64> {
         // 如果我们超过了光线反弹限制，就不再收集光线。
-        if depth <= 0 {
+        if depth == 0 {
             return Vector3::default();
         }
 
         // 如果光线没有击中了世界中的任何东西，则返回背景颜色。
-        match world.hit(r, &Interval::new(f64::EPSILON, INFINITY)) {
+        match world.hit(r, &Interval::new(0.001, INFINITY)) {
             Some(rec) => {
                 let mat = rec.material;
-                let color_from_emission = mat.emitted(&rec.uv, &rec.p, &rec);
+                let color_from_emission = mat.emitted(&rec.uv, &rec.p,  &rec);
 
                 match mat.scatter(r, &rec) {
                     Some(srec) => {
@@ -219,23 +243,19 @@ impl Camera {
                             ));
                         }
 
-                        let light_pdf = crate::pdf::PDF::Hittable(Box::new(HittablePdf::new(
-                            lights,
-                            rec.p.clone(),
-                        )));
-                        // println!("light_pdf: {:#?}", light_pdf);
-                        let mixed_pdf = crate::pdf::PDF::Mixture(Box::new(MixturePdf::new(
-                            &light_pdf, &srec.pdf,
-                        )));
+                        let light_pdf =
+                            crate::pdf::PDF::Hittable(Box::new(HittablePdf::new(lights, rec.p)));
+                        let mixed_pdf = MixturePdf::new(&light_pdf, &srec.pdf);
 
                         let scattered = Ray::new_with_time(rec.p, mixed_pdf.generate(), r.time);
-
                         let pdf = mixed_pdf.value(&scattered.direction);
 
-                        let scattering_pdf = mat.scattering_pdf(r, &scattered, &rec);
-                        let sample_color = self.ray_color(&scattered, depth - 1, world, lights);
+                        let scattering_pdf = mat.scattering_pdf(&r, &scattered, &rec);
+                        // eprintln!("pdf: {}, scattering_pdf: {}", pdf, scattering_pdf);
+                        let sample_color=self.ray_color(&scattered, depth - 1, world, lights);
                         let color_from_scatter =
                             (srec.attenuation.component_mul(&sample_color) * scattering_pdf) / pdf;
+
                         color_from_emission + color_from_scatter
                     }
                     None => return color_from_emission,
@@ -243,22 +263,5 @@ impl Camera {
             }
             None => self.background,
         }
-    }
-
-    fn defocus_disk_sample(&self) -> Vector3<f64> {
-        let p = random_unit_vector();
-        self.center + self.defocus_disk_u * p.x + self.defocus_disk_v * p.y
-    }
-    fn pixel_sample_square(&self, s_i: i32, s_j: i32) -> Vector3<f64> {
-        // Returns a random point in the square surrounding a pixel at the origin.
-        let px = -0.5 + self.recip_sqrt_spp * (s_i as f64 + random_f64());
-        let py = -0.5 + self.recip_sqrt_spp * (s_j as f64 + random_f64());
-        px * self.pixel_delta_u + py * self.pixel_delta_v
-    }
-
-    fn sample_sqare_stratified(&self, x: u32, y: u32) -> Vector3<f64> {
-        let px = (x as f64 + random_f64()) * self.recip_sqrt_spp - 0.5;
-        let py = (y as f64 + random_f64()) * self.recip_sqrt_spp - 0.5;
-        Vector3::new(px, py, 0.0)
     }
 }
