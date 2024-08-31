@@ -1,9 +1,11 @@
+use nalgebra::Vector3;
+
 use crate::{
     aabb::{AABB, AABB_EMPTY},
     hit::{HitRecord, Hittable},
-    util::Interval,
+    util::{random_int, Interval},
 };
-#[derive(Debug, Default,Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct Scene {
     pub objects: Vec<Hittable>,
     pub bbox: AABB,
@@ -45,5 +47,20 @@ impl Scene {
         for obj in rhs.objects {
             self.add(obj);
         }
+    }
+    pub fn pdf_value(&self, origin: &Vector3<f64>, direction: &Vector3<f64>) -> f64 {
+        let weight = 1.0 / self.objects.len() as f64;
+        let mut sum = 0.0;
+
+        for object in self.objects.iter() {
+            sum += weight * object.pdf_value(origin, direction);
+        }
+
+        sum
+    }
+    pub fn random(&self, origin: &Vector3<f64>) -> Vector3<f64> {
+        let int_size = self.objects.len() as i32;
+        // println!("int_size:{}", int_size);
+        self.objects[random_int(0, int_size ) as usize].random(origin)
     }
 }

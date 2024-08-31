@@ -1,10 +1,10 @@
-use core::f32;
+use core::f64;
 
 use nalgebra::Vector3;
 
 use crate::{
     material::{Lambertian, Material},
-    util::{random_f32, Interval, UNIVERSE_INTERVAL},
+    util::{random_f64, Interval, UNIVERSE_INTERVAL},
 };
 
 use super::Hittable;
@@ -12,19 +12,19 @@ use super::Hittable;
 
 pub struct ConstMedium {
     pub boundary: Box<Hittable>,
-    pub neg_density: f32,
+    pub neg_density: f64,
     pub phase_function: Box<Material>,
 }
 
 impl ConstMedium {
-    pub fn new(boundary: Hittable, density: f32, phase_function: Box<Material>) -> Self {
+    pub fn new(boundary: Hittable, density: f64, phase_function: Box<Material>) -> Self {
         Self {
             boundary: Box::new(boundary),
             neg_density: -1.0 / density,
             phase_function,
         }
     }
-    pub fn new_with_color(boundary: Hittable, density: f32, color: Vector3<f32>) -> Self {
+    pub fn new_with_color(boundary: Hittable, density: f64, color: Vector3<f64>) -> Self {
         Self {
             boundary: Box::new(boundary),
             neg_density: -1.0 / density,
@@ -41,7 +41,7 @@ impl ConstMedium {
         let mut rec2;
         match self
             .boundary
-            .hit(ray, &Interval::new(rec1.t + 0.0001, f32::MAX))
+            .hit(ray, &Interval::new(rec1.t + 0.0001, f64::INFINITY))
         {
             Some(rec) => rec2 = rec,
             None => return None,
@@ -62,7 +62,7 @@ impl ConstMedium {
 
         let ray_length = ray.direction.norm();
         let distance_inside_boundary = (rec2.t - rec1.t) * ray_length;
-        let hit_distance = self.neg_density * random_f32().ln();
+        let hit_distance = self.neg_density * random_f64().ln();
 
         if hit_distance > distance_inside_boundary {
             return None;

@@ -1,23 +1,30 @@
 use nalgebra::{Vector2, Vector3};
 
-use crate::{aabb::AABB, material::Material, scene::Scene, util::Interval};
+use crate::{
+    aabb::AABB,
+    material::Material,
+    ray::Ray,
+    scene::Scene,
+    util::{random_f64, Interval},
+};
 
 use super::HitRecord;
 #[derive(Debug, Clone)]
 
 pub struct Quad {
-    pub q: Vector3<f32>,
-    pub u: Vector3<f32>,
-    pub v: Vector3<f32>,
-    pub normal: Vector3<f32>,
-    pub d: f32,
-    pub w: Vector3<f32>,
+    pub q: Vector3<f64>,
+    pub u: Vector3<f64>,
+    pub v: Vector3<f64>,
+    pub normal: Vector3<f64>,
+    pub d: f64,
+    pub w: Vector3<f64>,
     pub material: Material,
     pub aabb: AABB,
+    pub area: f64,
 }
 
 impl Quad {
-    pub fn new(q: Vector3<f32>, u: Vector3<f32>, v: Vector3<f32>, material: Material) -> Self {
+    pub fn new(q: Vector3<f64>, u: Vector3<f64>, v: Vector3<f64>, material: Material) -> Self {
         let n = u.cross(&v);
         let normal = n.normalize();
 
@@ -36,59 +43,80 @@ impl Quad {
             normal,
             d,
             w,
+            area: n.norm(),
         }
     }
 
     pub fn hit(&self, ray: &crate::ray::Ray, interval: &Interval) -> Option<HitRecord> {
-        let mut record = None;
         let denom = self.normal.dot(&ray.direction);
 
         if denom.abs() < 1e-8 {
-            return record;
+            return None;
         }
 
         let t = (self.d - self.normal.dot(&ray.origin)) / denom;
 
         if !interval.contains(t) {
-            return record;
+            return None;
         }
 
         let intersection = ray.at(t);
         let plannar_hitpt_vec = intersection - self.q;
         let alpha = self.w.dot(&plannar_hitpt_vec.cross(&self.v));
         let beta = self.w.dot(&self.u.cross(&plannar_hitpt_vec));
+        let p = intersection;
 
-        let mut hit = HitRecord {
-            t,
-            p: intersection,
-            normal: self.normal,
-            front_face: true,
-            uv: Vector2::zeros(),
-            material: &self.material,
-        };
-        hit.set_face_normal(ray, &self.normal);
-        if !self.is_interior(alpha, beta, &mut hit) {
-            return record;
+        match self.is_interior(alpha, beta) {
+            Some(uv) => {
+                let mut rec = HitRecord {
+                    p,
+                    normal: Vector3::zeros(),
+                    material: &self.material,
+                    t,
+                    uv,
+                    front_face: true,
+                    trace: false,
+                };
+                rec.set_face_normal(ray, &self.normal);
+                Some(rec)
+            }
+            None => None,
         }
-
-        record.replace(hit);
-        record
     }
 
     /// Given the hit point in plane coordinates, return false if it is outside the
     /// primitive, otherwise set the hit record UV coordinates and return true.
 
-    pub fn is_interior(&self, a: f32, b: f32, rec: &mut HitRecord) -> bool {
-        if !(0.0..=1.0).contains(&a) || !(0.0..=1.0).contains(&b) {
-            return false;
+    pub fn is_interior(&self, u: f64, v: f64) -> Option<Vector2<f64>> {
+        // 给定平面坐标中的击中点，如果它在基元之外，则返回false，否则设置击中记录的UV坐标并返回true。
+        if !(0.0..=1.0).contains(&u) || !(0.0..=1.0).contains(&v) {
+            return None;
         }
 
-        rec.uv = Vector2::new(a, b);
-        true
+        Some(Vector2::new(u, v))
+    }
+    pub fn pdf_value(&self, origin: &Vector3<f64>, direction: &Vector3<f64>) -> f64 {
+        match self.hit(
+            &Ray::new(origin.clone(), direction.clone()),
+            &Interval::new(0.00001, f64::INFINITY),
+        ) {
+            Some(rec) => {
+                let distance_squared = rec.t * rec.t * direction.norm_squared();
+                let cosine = ((direction.dot(&rec.normal)) / direction.norm()).abs();
+                // println!("self.area: {:?}", self.area);
+                let res = distance_squared / (cosine * self.area);
+                res
+            }
+            None => 0.0,
+        }
+    }
+    pub fn random(&self, origin: &Vector3<f64>) -> Vector3<f64> {
+        let p = self.q + (random_f64() * self.u) + (random_f64() * self.v);
+        p - origin
     }
 }
 
-pub fn box_scene(a: Vector3<f32>, b: Vector3<f32>, mat: Material) -> Scene {
+pub fn box_scene(a: Vector3<f64>, b: Vector3<f64>, mat: Material) -> Scene {
     let mut sides = Scene::default();
 
     let min = Vector3::new(a.x.min(b.x), a.y.min(b.y), a.z.min(b.z));

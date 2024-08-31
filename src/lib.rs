@@ -8,3 +8,5 @@ pub mod bvh;
 pub mod texture;
 pub mod noise;
 pub mod aabb;
+pub mod onb;
+pub mod pdf;

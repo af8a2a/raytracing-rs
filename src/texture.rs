@@ -12,7 +12,7 @@ pub enum Texture {
 }
 
 impl Texture {
-    pub fn value(&self, uv: &Vector2<f32>, p: &Vector3<f32>) -> Vector3<f32> {
+    pub fn value(&self, uv: &Vector2<f64>, p: &Vector3<f64>) -> Vector3<f64> {
         match self {
             Texture::Color(color) => color.value(uv, p),
             Texture::CheckerTexture(tex) => tex.value(uv, p),
@@ -25,15 +25,15 @@ impl Texture {
 #[derive(Debug, Clone)]
 
 pub struct SolidColor {
-    pub albedo: Vector3<f32>,
+    pub albedo: Vector3<f64>,
 }
 
 impl SolidColor {
-    pub fn new(albedo: Vector3<f32>) -> Self {
+    pub fn new(albedo: Vector3<f64>) -> Self {
         Self { albedo }
     }
-    pub fn value(&self, _uv: &Vector2<f32>, _p: &Vector3<f32>) -> Vector3<f32> {
-        self.albedo.clone()
+    pub fn value(&self, _uv: &Vector2<f64>, _p: &Vector3<f64>) -> Vector3<f64> {
+        self.albedo
     }
 }
 
@@ -41,18 +41,18 @@ impl SolidColor {
 pub struct CheckerTexture {
     pub odd: Box<Texture>,
     pub even: Box<Texture>,
-    pub inv_scale: f32,
+    pub inv_scale: f64,
 }
 
 impl CheckerTexture {
-    pub fn new(odd: Box<Texture>, even: Box<Texture>, scale: f32) -> Self {
+    pub fn new(odd: Box<Texture>, even: Box<Texture>, scale: f64) -> Self {
         Self {
             odd,
             even,
             inv_scale: 1.0 / scale,
         }
     }
-    pub fn new_with_color(odd: &Vector3<f32>, even: &Vector3<f32>, scale: f32) -> Self {
+    pub fn new_with_color(odd: &Vector3<f64>, even: &Vector3<f64>, scale: f64) -> Self {
         Self {
             odd: Box::new(Texture::Color(SolidColor::new(odd.clone()))),
             even: Box::new(Texture::Color(SolidColor::new(even.clone()))),
@@ -60,7 +60,7 @@ impl CheckerTexture {
         }
     }
 
-    pub fn value(&self, uv: &Vector2<f32>, p: &Vector3<f32>) -> Vector3<f32> {
+    pub fn value(&self, uv: &Vector2<f64>, p: &Vector3<f64>) -> Vector3<f64> {
         let x = (self.inv_scale * p.x).floor() as i32;
         let y = (self.inv_scale * p.y).floor() as i32;
         let z = (self.inv_scale * p.z).floor() as i32;
@@ -82,22 +82,22 @@ impl ImageTexture {
     pub fn new(image: RgbImage) -> Self {
         Self { image }
     }
-    pub fn value(&self, uv: &Vector2<f32>, _p: &Vector3<f32>) -> Vector3<f32> {
+    pub fn value(&self, uv: &Vector2<f64>, _p: &Vector3<f64>) -> Vector3<f64> {
         if self.image.height() <= 0 {
             return Vector3::new(0.0, 1.0, 1.0);
         }
 
         let u = uv.x.clamp(0.0, 1.0);
         let v = 1.0 - uv.y.clamp(0.0, 1.0);
-        let i = ((u * (self.image.width()) as f32) as u32).clamp(0, self.image.width()-1);
-        let j = ((v * (self.image.height()) as f32) as u32).clamp(0, self.image.height()-1);
+        let i = ((u * (self.image.width()) as f64) as u32).clamp(0, self.image.width()-1);
+        let j = ((v * (self.image.height()) as f64) as u32).clamp(0, self.image.height()-1);
         let pixel = self.image.get_pixel(i, j);
         let scale = 1.0 / 255.0;
         // println!("{},{}",i,j);
         Vector3::new(
-            pixel.0[0] as f32 * scale,
-            pixel.0[1] as f32 * scale,
-            pixel.0[2] as f32 * scale,
+            pixel.0[0] as f64 * scale,
+            pixel.0[1] as f64 * scale,
+            pixel.0[2] as f64 * scale,
         )
     }
 }
@@ -105,19 +105,19 @@ impl ImageTexture {
 
 pub struct NoiseTexture {
     noise: Perlin,
-    scale: f32,
+    scale: f64,
 }
 
 impl NoiseTexture {
-    pub fn new(scale: f32) -> Self {
+    pub fn new(scale: f64) -> Self {
         Self {
             noise: Perlin::new(),
             scale,
         }
     }
-    pub fn value(&self, _uv: &Vector2<f32>, p: &Vector3<f32>) -> Vector3<f32> {
+    pub fn value(&self, _uv: &Vector2<f64>, p: &Vector3<f64>) -> Vector3<f64> {
         // let noise = self.noise.noise(&(p * self.scale)) * 0.5 + 0.5;
-        let noise: f32 = 0.5 * (1.0 + (self.scale * p.z + 10.0 * self.noise.turb(p, 7)).sin());
+        let noise: f64 = 0.5 * (1.0 + (self.scale * p.z + 10.0 * self.noise.turb(p, 7)).sin());
         Vector3::new(noise, noise, noise)
     }
 }
@@ -131,12 +131,12 @@ impl Isotropic {
     pub fn new(tex: Texture) -> Self {
         Self { tex: Box::new(tex) }
     }
-    pub  fn new_with_color(albedo: Vector3<f32>) -> Self {
+    pub  fn new_with_color(albedo: Vector3<f64>) -> Self {
         Self {
             tex: Box::new(Texture::Color(SolidColor::new(albedo))),
         }
     }
-    pub fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<(Ray, Vector3<f32>)> {
+    pub fn scatter(&self, ray: &Ray, hit_record: &HitRecord) -> Option<(Ray, Vector3<f64>)> {
         let scattered= Ray::new_with_time(hit_record.p, random_unit_vector(), ray.time);
         let attenuation = self.tex.value(&hit_record.uv, &hit_record.p).clone();
         Some((scattered,attenuation))
